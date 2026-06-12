@@ -1,0 +1,50 @@
+name: SSR Smoke
+
+# Keeps the flagship demo green: builds the pinned container and fails the
+# run unless the app serves server-rendered component HTML (bin/smoke exits
+# non-zero when SSR is broken). Runs on PRs, pushes to main, and a weekly
+# cron so dependency rot is caught even when the repo is quiet.
+#
+# Structured so the shared fleet smoke workflow (shakacode/react_on_rails#3898)
+# can adopt it: the whole check is `docker compose up -d --build && bin/smoke`.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  schedule:
+    # Weekly: 14:23 UTC every Monday (off the top of the hour to avoid the
+    # GitHub Actions scheduled-job rush).
+    - cron: "23 14 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ssr-smoke:
+    name: Container boot + SSR smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and boot the container
+        run: docker compose up -d --build
+
+      - name: Run SSR smoke check
+        run: bin/smoke
+
+      - name: Show app logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Shut down
+        if: always()
+        run: docker compose down

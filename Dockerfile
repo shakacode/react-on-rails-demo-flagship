@@ -20,9 +20,23 @@ WORKDIR /rails
 
 # Install base packages
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y curl libjemalloc2 sqlite3 && \
+    apt-get install --no-install-recommends -y curl libjemalloc2 sqlite3 xz-utils && \
     ln -s /usr/lib/$(uname -m)-linux-gnu/libjemalloc.so.2 /usr/local/lib/libjemalloc.so && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
+
+# Install a pinned Node.js. Needed at runtime too: open-source React on Rails
+# server-side rendering executes the server bundle through ExecJS + Node.
+ARG NODE_VERSION
+RUN ARCH="$(uname -m)" && \
+    case "$ARCH" in \
+      x86_64) NODE_ARCH="x64" ;; \
+      aarch64) NODE_ARCH="arm64" ;; \
+      *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
+    esac && \
+    curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" -o /tmp/node.tar.xz && \
+    tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 && \
+    rm /tmp/node.tar.xz && \
+    node --version && npm --version
 
 # Set production environment variables and enable jemalloc for reduced memory usage and latency.
 ENV RAILS_ENV="production" \
@@ -34,24 +48,10 @@ ENV RAILS_ENV="production" \
 # Throw-away build stage to reduce size of final image
 FROM base AS build
 
-ARG NODE_VERSION
-
 # Install packages needed to build gems and JS assets
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential git libyaml-dev pkg-config xz-utils && \
+    apt-get install --no-install-recommends -y build-essential git libyaml-dev pkg-config && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
-
-# Install a pinned Node.js for the Shakapacker/Rspack asset build
-RUN ARCH="$(uname -m)" && \
-    case "$ARCH" in \
-      x86_64) NODE_ARCH="x64" ;; \
-      aarch64) NODE_ARCH="arm64" ;; \
-      *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
-    esac && \
-    curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" -o /tmp/node.tar.xz && \
-    tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 && \
-    rm /tmp/node.tar.xz && \
-    node --version && npm --version
 
 # Install application gems
 COPY Gemfile Gemfile.lock ./

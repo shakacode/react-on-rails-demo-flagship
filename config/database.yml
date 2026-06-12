@@ -28,4 +28,6 @@ test:
 # ensure the database is located in a persisted volume.
 production:
   <<: *default
-  # database: path/to/persistent/storage/production.sqlite3
+  # For this demo the production env is the deterministic local container
+  # boot; the database lives inside the container and is reseeded at boot.
+  database: storage/production.sqlite3
