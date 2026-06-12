@@ -1,0 +1,45 @@
+<div class="page">
+  <header class="hero">
+    <p class="eyebrow">React on Rails &middot; OSS Flagship Demo</p>
+    <h1>Flagship Task Board</h1>
+    <p class="lead">
+      A real CRUD app, server-rendered by Rails. The board below arrives as HTML
+      from the server (<code>prerender: true</code>), then React 19 hydrates it and a
+      Redux Toolkit store takes over. ActiveRecord owns the data; React owns the UI.
+    </p>
+    <div class="hero-links">
+      <a href="https://github.com/shakacode/react-on-rails-demo-flagship" target="_blank" rel="noreferrer">Source on GitHub</a>
+      <a href="https://reactonrails.com" target="_blank" rel="noreferrer">React on Rails docs</a>
+    </div>
+  </header>
+
+  <main class="surface">
+    <%= react_component("TasksApp", props: @tasks_props, prerender: true) %>
+  </main>
+
+  <footer class="explain">
+    <div class="explain-card">
+      <h2>Prove SSR to yourself</h2>
+      <p>
+        Run <code>curl -s localhost:3000 | grep task-card</code> &mdash; the task markup
+        is in the raw HTML response, not injected by client JavaScript.
+        <code>bin/smoke</code> automates exactly that check.
+      </p>
+    </div>
+    <div class="explain-card">
+      <h2>Where to look</h2>
+      <p>
+        <code>app/controllers/tasks_controller.rb</code> builds the props,
+        <code>app/views/tasks/index.html.erb</code> mounts the component, and
+        <code>app/javascript/src/TasksApp/</code> holds the React + Redux Toolkit code.
+      </p>
+    </div>
+    <div class="explain-card">
+      <h2>Error states included</h2>
+      <p>
+        Submit an empty title to see Rails validations surface in the banner, or stop
+        the server and try a change to see the network error path.
+      </p>
+    </div>
+  </footer>
+</div>

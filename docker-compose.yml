@@ -1,0 +1,24 @@
+# Deterministic container boot for the flagship demo:
+#
+#   docker compose up --build
+#   bin/smoke   # in another terminal; exits non-zero if SSR is broken
+#
+# Versions are pinned in the Dockerfile (Ruby, Node), Gemfile.lock, and
+# package-lock.json. Assets are precompiled at image build time and the
+# SQLite database is created and seeded at boot, so no network access is
+# needed once the image is built.
+services:
+  web:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      # Demo-only value so clone-and-run needs no credentials or master.key.
+      # Generate a real secret for any actual deployment.
+      SECRET_KEY_BASE: "react-on-rails-flagship-demo-static-secret-key-base-for-local-use-only"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/up"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 10s

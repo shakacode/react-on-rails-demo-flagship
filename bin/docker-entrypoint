@@ -1,8 +1,10 @@
 #!/bin/bash -e
 
-# If running the rails server then create or migrate existing database
+# If running the rails server then create/migrate the database and load the
+# deterministic seed data (db/seeds.rb is idempotent, so this always
+# converges to the same six tasks).
 if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
-  ./bin/rails db:prepare
+  ./bin/rails db:prepare db:seed
 fi
 
 exec "${@}"

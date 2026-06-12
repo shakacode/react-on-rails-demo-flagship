@@ -33,3 +33,15 @@
 # Ignore key files for decrypting credentials and more.
 /config/*.key
 
+
+/public/packs
+/public/packs-test
+/node_modules
+/yarn-error.log
+yarn-debug.log*
+.yarn-integrity
+
+# React on Rails (generated and local files)
+**/generated/**
+ssr-generated
+.env

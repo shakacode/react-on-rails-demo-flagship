@@ -42,3 +42,9 @@
 # Ignore Docker-related files
 /.dockerignore
 /Dockerfile*
+
+# Ignore locally-built assets; the image rebuilds them at build time.
+/public/packs
+/public/packs-test
+/ssr-generated
+/app/javascript/generated

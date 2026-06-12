@@ -1,0 +1,187 @@
+.board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+  margin-top: 22px;
+}
+
+.column {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(15, 36, 56, 0.1);
+  border-radius: 18px;
+  padding: 16px;
+  min-height: 180px;
+}
+
+.columnTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 14px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #44546a;
+}
+
+.columnCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: rgba(15, 36, 56, 0.08);
+  font-size: 0.8rem;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid rgba(15, 36, 56, 0.12);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 6px 18px rgba(15, 36, 56, 0.07);
+}
+
+.card + .card {
+  margin-top: 12px;
+}
+
+.cardTitle {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #14283d;
+}
+
+.cardNotes {
+  margin: 0 0 12px;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: #51607a;
+  overflow-wrap: anywhere;
+}
+
+.cardActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.statusSelect {
+  flex: 1;
+  padding: 7px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 36, 56, 0.18);
+  background: #f7f9fc;
+  font: inherit;
+  font-size: 0.85rem;
+  color: #14283d;
+}
+
+.deleteButton {
+  padding: 7px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(178, 34, 52, 0.25);
+  background: rgba(178, 34, 52, 0.06);
+  color: #b22234;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.deleteButton:hover {
+  background: rgba(178, 34, 52, 0.14);
+}
+
+.form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.titleInput,
+.notesInput {
+  flex: 1 1 220px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 36, 56, 0.18);
+  background: #ffffff;
+  font: inherit;
+  font-size: 0.95rem;
+  color: #14283d;
+}
+
+.titleInput:focus,
+.notesInput:focus,
+.statusSelect:focus {
+  outline: 2px solid #2f6fed;
+  outline-offset: 1px;
+}
+
+.submitButton {
+  padding: 11px 22px;
+  border-radius: 12px;
+  border: none;
+  background: #0f2438;
+  color: #fdfaf4;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.submitButton:hover {
+  background: #1c3a5e;
+}
+
+.submitButton:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.errorBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(178, 34, 52, 0.35);
+  background: rgba(178, 34, 52, 0.08);
+  color: #8f1d2c;
+  font-size: 0.92rem;
+}
+
+.errorDismiss {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.meta {
+  margin-top: 20px;
+  font-size: 0.82rem;
+  color: #66758c;
+}
+
+.meta code {
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(15, 36, 56, 0.07);
+}
+
+.empty {
+  margin: 0;
+  padding: 18px 6px;
+  font-size: 0.88rem;
+  color: #8392a8;
+  text-align: center;
+}
