@@ -1,7 +1,7 @@
 kind: workload
 name: rails
 spec:
-  type: serverless
+  type: standard
   containers:
     - name: rails
       cpu: 500m
@@ -32,10 +32,9 @@ spec:
         failureThreshold: 3
   defaultOptions:
     autoscaling:
-      metric: rps
-      minScale: 0
+      metric: disabled
       maxScale: 1
-    capacityAI: false
+    capacityAI: true
     timeoutSeconds: 60
   firewallConfig:
     external:

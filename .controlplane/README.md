@@ -12,12 +12,12 @@ container entrypoint runs `db:prepare db:seed` whenever the Rails server starts,
 so staging returns to the deterministic six-task demo state after each workload
 restart or deploy.
 
-The Rails workload is `type: serverless` with `minScale: 0`. That keeps this
-public demo from running an always-on idle replica and matches the cost posture
-for example and starter apps where occasional cold starts are acceptable. The
-first request after an idle period may wait for Rails to boot; change the
-workload back to `type: standard` with `minScale: 1` only if the demo needs
-always-warm staging latency.
+The Rails workload stays `type: standard` with the explicit autoscaling metric
+disabled and `capacityAI: true`. That matches the cost posture for public demos
+and starter staging apps: Control Plane can right-size idle capacity without a
+standard-to-serverless delete/recreate migration. This is not full scale-to-zero;
+steady RAM usage can still drive cost. Revisit serverless only if true idle
+scale-to-zero becomes a deliberate staging requirement.
 
 The workload keeps inbound traffic public (`0.0.0.0/0`) because this is a public
 demo. Runtime egress is denied by default (`outboundAllowCIDR: []`) because the
@@ -91,5 +91,5 @@ with the existing root `Dockerfile` through `.controlplane/controlplane.yml`'s
 `dockerfile: ../Dockerfile` setting.
 
 If this app is ever promoted from a public demo to a user-facing availability
-target, revisit the serverless scale-to-zero setting before enabling production
-promotion or uptime monitoring.
+target, revisit the disabled autoscaling metric and Capacity AI posture before
+enabling production promotion or uptime monitoring.

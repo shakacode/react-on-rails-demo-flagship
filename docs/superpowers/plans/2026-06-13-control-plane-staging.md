@@ -10,8 +10,8 @@ production promotion.
 1. Add the staging-only `.controlplane/controlplane.yml` app entry for
    `react-on-rails-demo-flagship-staging`.
 2. Add app and Rails workload templates with production Rails env, secret-backed
-   `SECRET_KEY_BASE`, port 3000, `/up` probes, and serverless scale-to-zero for
-   public-demo cost control.
+   `SECRET_KEY_BASE`, port 3000, `/up` probes, disabled autoscaling metric, and
+   Capacity AI for public-demo cost control.
 3. Add a pinned staging GitHub Actions wrapper that calls
    `shakacode/control-plane-flow` at `v5.1.1`.
 4. Add a local validation script for the Control Plane GitHub wrapper.

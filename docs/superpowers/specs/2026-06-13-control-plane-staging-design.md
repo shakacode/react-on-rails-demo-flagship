@@ -16,20 +16,21 @@ Add a staging-only Control Plane Flow setup for
 `Dockerfile` via `dockerfile: ../Dockerfile` instead of maintaining a second
 image definition under `.controlplane/`.
 
-The staging app has one public serverless `rails` workload, secret-backed
-`SECRET_KEY_BASE`, `/up` readiness and liveness probes, `minScale: 0`, and no
-review-app or production promotion workflows. The app remains deterministic: it
-does not add persistent SQLite volumes, and it lets the existing server
-entrypoint run `db:prepare db:seed` on boot.
+The staging app has one public standard `rails` workload, secret-backed
+`SECRET_KEY_BASE`, `/up` readiness and liveness probes, an explicit disabled
+autoscaling metric, `capacityAI: true`, and no review-app or production
+promotion workflows. The app remains deterministic: it does not add persistent
+SQLite volumes, and it lets the existing server entrypoint run
+`db:prepare db:seed` on boot.
 
 ## Tradeoffs
 
 - Persistent SQLite volumes would preserve user-created demo data, but they
   would also make staging drift from the known six-task demo state and add
   volume ownership concerns with the non-root runtime image.
-- `type: serverless` with `minScale: 0` saves idle demo cost at the price of
-  cold-start latency after quiet periods. That is the intended tradeoff for a
-  public example app, not necessarily for production.
+- Keeping `type: standard` with the autoscaling metric disabled lets Capacity AI
+  right-size staging without a standard-to-serverless delete/recreate migration.
+  This is not full scale-to-zero; RAM usage can still drive residual cost.
 - Public inbound traffic is intentional for this demo, but runtime egress is
   denied because the app serves seeded local data and does not need external
   service calls in normal use.
