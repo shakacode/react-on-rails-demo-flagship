@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+cpflow_cmd=(cpflow)
+if [[ $# -gt 0 ]]; then
+  cpflow_cmd=("$@")
+fi
+
+echo "==> cpflow github-flow-readiness"
+"${cpflow_cmd[@]}" github-flow-readiness
+
+echo "==> parse GitHub Actions YAML"
+ruby <<'RUBY'
+require "yaml"
+
+Dir[".github/actions/**/action.yml", ".github/workflows/*.yml"].sort.each do |path|
+  YAML.load_file(path, aliases: true)
+  puts "parsed #{path}"
+end
+RUBY
+
+echo "==> check cpflow reusable workflow refs"
+ruby <<'RUBY'
+require "yaml"
+
+control_plane_flow_workflow = %r{\Ashakacode/control-plane-flow/\.github/workflows/[^@\s]+@([^\s]+)\z}
+refs = Hash.new { |hash, key| hash[key] = [] }
+
+Dir[".github/workflows/cpflow-*.yml"].sort.each do |path|
+  doc = YAML.load_file(path, aliases: true)
+  doc.fetch("jobs", {}).each do |job_name, job|
+    next unless job.is_a?(Hash)
+
+    if job["secrets"] == "inherit"
+      abort "#{path}:#{job_name} uses secrets: inherit; pass only the named secrets the upstream workflow needs"
+    end
+
+    with = job["with"].is_a?(Hash) ? job["with"] : {}
+    if with["control_plane_flow_ref"]
+      abort "#{path}:#{job_name} passes obsolete control_plane_flow_ref"
+    end
+
+    uses_match = job["uses"].to_s.match(control_plane_flow_workflow)
+    refs[uses_match[1]] << "#{path}:#{job_name}" if uses_match
+  end
+end
+
+if refs.empty?
+  abort "no upstream cpflow reusable workflow refs found"
+elsif refs.length > 1
+  refs.each do |ref, paths|
+    puts "#{ref}: #{paths.uniq.sort.join(', ')}"
+  end
+  abort "cpflow workflow wrappers use multiple upstream refs: #{refs.keys.sort.join(', ')}"
+else
+  puts "cpflow refs: #{refs.keys.sort.join(', ')}"
+end
+RUBY
+
+echo "==> actionlint"
+actionlint \
+  -ignore "SC2129" \
+  -ignore 'property "workflow_(ref|sha|repository|file_path)" is not defined in object type' \
+  .github/workflows/cpflow-*.yml
