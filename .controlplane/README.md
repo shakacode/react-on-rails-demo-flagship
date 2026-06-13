@@ -12,6 +12,18 @@ container entrypoint runs `db:prepare db:seed` whenever the Rails server starts,
 so staging returns to the deterministic six-task demo state after each workload
 restart or deploy.
 
+The Rails workload is `type: serverless` with `minScale: 0`. That keeps this
+public demo from running an always-on idle replica and matches the cost posture
+for example and starter apps where occasional cold starts are acceptable. The
+first request after an idle period may wait for Rails to boot; change the
+workload back to `type: standard` with `minScale: 1` only if the demo needs
+always-warm staging latency.
+
+The workload keeps inbound traffic public (`0.0.0.0/0`) because this is a public
+demo. Runtime egress is denied by default (`outboundAllowCIDR: []`) because the
+app serves its own seeded SQLite data and does not need to call external
+services during normal use.
+
 ## Prerequisites
 
 ```bash
@@ -77,3 +89,7 @@ Configure these repository settings before relying on automatic staging deploys:
 The staging workflow runs on pushes to `main` and manual dispatches. It builds
 with the existing root `Dockerfile` through `.controlplane/controlplane.yml`'s
 `dockerfile: ../Dockerfile` setting.
+
+If this app is ever promoted from a public demo to a user-facing availability
+target, revisit the serverless scale-to-zero setting before enabling production
+promotion or uptime monitoring.

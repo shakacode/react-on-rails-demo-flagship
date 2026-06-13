@@ -1,7 +1,7 @@
 kind: workload
 name: rails
 spec:
-  type: standard
+  type: serverless
   containers:
     - name: rails
       cpu: 500m
@@ -33,7 +33,7 @@ spec:
   defaultOptions:
     autoscaling:
       metric: rps
-      minScale: 1
+      minScale: 0
       maxScale: 1
     capacityAI: false
     timeoutSeconds: 60
@@ -41,6 +41,5 @@ spec:
     external:
       inboundAllowCIDR:
         - 0.0.0.0/0
-      outboundAllowCIDR:
-        - 0.0.0.0/0
+      outboundAllowCIDR: []
   identityLink: "{{APP_IDENTITY_LINK}}"
