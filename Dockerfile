@@ -85,12 +85,15 @@ FROM base
 # Run and own only the runtime files as a non-root user for security
 RUN groupadd --system --gid 1000 rails && \
     useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash
-USER 1000:1000
 
 # Copy built artifacts: gems, application (including public/packs client
 # assets and the private ssr-generated/ server bundle)
 COPY --chown=rails:rails --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
 COPY --chown=rails:rails --from=build /rails /rails
+RUN mkdir -p /rails/.node-renderer-bundles && \
+    chown -R rails:rails /rails/.node-renderer-bundles
+
+USER 1000:1000
 
 # Entrypoint prepares and seeds the database.
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
