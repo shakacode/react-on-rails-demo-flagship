@@ -1,5 +1,6 @@
 Rails.application.routes.draw do
   root 'tasks#index'
+  rsc_payload_route
 
   namespace :api, defaults: { format: :json } do
     resources :tasks, only: %i[index create update destroy]

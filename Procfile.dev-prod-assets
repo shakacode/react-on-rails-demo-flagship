@@ -2,7 +2,10 @@
 # Uses production-optimized, precompiled assets with development environment
 # Uncomment additional processes as needed for your app
 
-rails: bundle exec rails s -p ${PORT:-3001}
+rails: ALLOW_DEMO_RENDERER_PASSWORD=true RENDERER_URL=${RENDERER_URL:-http://localhost:${RENDERER_PORT:-3800}} bundle exec rails s -p ${PORT:-3001}
 # sidekiq: bundle exec sidekiq -C config/sidekiq.yml
 # redis: redis-server
 # mailcatcher: mailcatcher --foreground
+server-bundle: SERVER_BUNDLE_ONLY=true bin/shakapacker-watch --watch
+rsc-bundle: RSC_BUNDLE_ONLY=true bin/shakapacker-watch --watch
+node-renderer: RAILS_ENV=development ALLOW_DEMO_RENDERER_PASSWORD=true RENDERER_PORT=${RENDERER_PORT:-3800} node client/node-renderer.js

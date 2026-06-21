@@ -1,2 +1,5 @@
-web: bin/rails server -p ${PORT:-3000}
+web: ALLOW_DEMO_RENDERER_PASSWORD=true RENDERER_URL=${RENDERER_URL:-http://localhost:${RENDERER_PORT:-3800}} bin/rails server -p ${PORT:-3000}
 js: bin/shakapacker-watch --watch
+server-bundle: SERVER_BUNDLE_ONLY=true bin/shakapacker-watch --watch
+rsc-bundle: RSC_BUNDLE_ONLY=true bin/shakapacker-watch --watch
+node-renderer: RAILS_ENV=development ALLOW_DEMO_RENDERER_PASSWORD=true RENDERER_PORT=${RENDERER_PORT:-3800} node client/node-renderer.js

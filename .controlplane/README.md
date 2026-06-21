@@ -12,12 +12,13 @@ container entrypoint runs `db:prepare db:seed` whenever the Rails server starts,
 so staging returns to the deterministic six-task demo state after each workload
 restart or deploy.
 
-The Rails workload stays `type: standard` with the explicit autoscaling metric
-disabled and `capacityAI: true`. That matches the cost posture for public demos
-and starter staging apps: Control Plane can right-size idle capacity without a
-standard-to-serverless delete/recreate migration. This is not full scale-to-zero;
-steady RAM usage can still drive cost. Revisit serverless only if true idle
-scale-to-zero becomes a deliberate staging requirement.
+The Rails and Node renderer workloads stay `type: standard` with the explicit
+autoscaling metric disabled and `capacityAI: true`. That matches the cost
+posture for public demos and starter staging apps: Control Plane can right-size
+idle capacity without a standard-to-serverless delete/recreate migration. This
+is not full scale-to-zero; steady RAM usage can still drive cost. Revisit
+serverless only if true idle scale-to-zero becomes a deliberate staging
+requirement.
 
 The workload keeps inbound traffic public (`0.0.0.0/0`) because this is a public
 demo. Runtime egress is denied by default (`outboundAllowCIDR: []`) because the
@@ -40,7 +41,8 @@ Create or update the staging secret dictionary:
 cpln secret create-dictionary \
   --name react-on-rails-demo-flagship-staging-secrets \
   --org shakacode-open-source-examples-staging \
-  --entry SECRET_KEY_BASE="$(bin/rails secret)"
+  --entry SECRET_KEY_BASE="$(bin/rails secret)" \
+  --entry RENDERER_PASSWORD="$(ruby -rsecurerandom -e 'puts SecureRandom.hex(32)')"
 ```
 
 Provision the persistent staging GVC and workload templates:

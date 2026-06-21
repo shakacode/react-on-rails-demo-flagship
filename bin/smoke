@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# SSR smoke check for the flagship demo.
+# RSC smoke check for the flagship demo.
 #
 # Exits non-zero unless the app at SMOKE_URL (default http://localhost:3000)
-# serves the task board as *server-rendered* HTML. The check requires real
+# serves the task board as streamed server-rendered HTML. The check requires real
 # component markup (a seeded task title inside its rendered <h3> tag), not
 # just the empty React mount node or the serialized props JSON, so it fails
 # if server-side rendering is broken even when the page itself loads.
@@ -16,7 +16,7 @@ SMOKE_URL="${SMOKE_URL:-http://localhost:3000}"
 WAIT_SECONDS="${SMOKE_WAIT_SECONDS:-120}"
 
 # The seeded task title rendered by the TasksApp component (db/seeds.rb).
-# Matching the closing </h3> proves the text came from SSR'd component
+# Matching the closing </h3> proves the text came from rendered component
 # markup, not from the props JSON embedded for client hydration.
 SSR_MARKER='Render the first screen on the server</h3>'
 CARD_MARKER='data-testid="task-card"'
@@ -38,16 +38,16 @@ html="$(curl -fsS "${SMOKE_URL}/")" || {
 }
 
 if ! grep -qF "$CARD_MARKER" <<<"$html"; then
-  echo "FAIL: no task-card markup in the HTML response - SSR produced no board." >&2
+  echo "FAIL: no task-card markup in the HTML response - Pro/RSC rendering produced no board." >&2
   exit 1
 fi
 
 if ! grep -qF "$SSR_MARKER" <<<"$html"; then
-  echo "FAIL: seeded task title not found inside rendered markup - SSR or seeds broken." >&2
+  echo "FAIL: seeded task title not found inside rendered markup - Pro/RSC rendering or seeds broken." >&2
   echo "      Expected to find: ${SSR_MARKER}" >&2
   exit 1
 fi
 
 card_count="$(grep -oF "$CARD_MARKER" <<<"$html" | wc -l | tr -d ' ')"
-echo "==> PASS: server-rendered HTML contains ${card_count} task cards, including the seeded title."
+echo "==> PASS: streamed HTML contains ${card_count} task cards, including the seeded title."
 echo "    Matched marker: ${SSR_MARKER}"

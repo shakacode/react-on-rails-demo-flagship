@@ -15,10 +15,12 @@ aliases:
     setup_app_templates:
       - app
       - rails
+      - node-renderer
 
     one_off_workload: rails
     app_workloads:
       - rails
+      - node-renderer
     additional_workloads: []
 
     fix_terminal_size: true

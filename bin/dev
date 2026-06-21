@@ -62,6 +62,9 @@
 # end
 
 require "bundler/setup"
+
+ENV["ALLOW_DEMO_RENDERER_PASSWORD"] ||= "true"
+
 require "react_on_rails/dev"
 
 # Default route configuration

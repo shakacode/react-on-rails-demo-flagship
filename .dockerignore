@@ -47,4 +47,5 @@
 /public/packs
 /public/packs-test
 /ssr-generated
+/.node-renderer-bundles
 /app/javascript/generated

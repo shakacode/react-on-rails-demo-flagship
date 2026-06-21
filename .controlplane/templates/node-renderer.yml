@@ -1,0 +1,27 @@
+kind: workload
+name: node-renderer
+spec:
+  type: standard
+  containers:
+    - name: node-renderer
+      cpu: 500m
+      inheritEnv: true
+      image: "{{APP_IMAGE_LINK}}"
+      memory: 1Gi
+      command: node
+      args:
+        - client/node-renderer.js
+      ports:
+        - number: 3800
+          protocol: http
+  defaultOptions:
+    autoscaling:
+      metric: disabled
+      maxScale: 1
+    capacityAI: true
+    timeoutSeconds: 60
+  firewallConfig:
+    external:
+      inboundAllowCIDR: []
+      outboundAllowCIDR: []
+  identityLink: "{{APP_IDENTITY_LINK}}"

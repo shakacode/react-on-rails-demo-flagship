@@ -1,8 +1,8 @@
-name: SSR Smoke
+name: RSC Smoke
 
 # Keeps the flagship demo green: builds the pinned container and fails the
-# run unless the app serves server-rendered component HTML (bin/smoke exits
-# non-zero when SSR is broken). Runs on PRs, pushes to main, and a weekly
+# run unless the app serves streamed component HTML (bin/smoke exits
+# non-zero when Pro/RSC rendering is broken). Runs on PRs, pushes to main, and a weekly
 # cron so dependency rot is caught even when the repo is quiet.
 #
 # Structured so the shared fleet smoke workflow (shakacode/react_on_rails#3898)
@@ -27,8 +27,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  ssr-smoke:
-    name: Container boot + SSR smoke
+  rsc-smoke:
+    name: Container boot + RSC smoke
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -38,7 +38,7 @@ jobs:
       - name: Build and boot the container
         run: docker compose up -d --build
 
-      - name: Run SSR smoke check
+      - name: Run RSC smoke check
         run: bin/smoke
 
       - name: Show app logs on failure
