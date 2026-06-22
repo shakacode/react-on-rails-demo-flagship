@@ -1,0 +1,47 @@
+#!/usr/bin/env node
+
+const http2 = require('node:http2');
+
+const host = process.env.RENDERER_HEALTHCHECK_HOST || '127.0.0.1';
+const port = process.env.RENDERER_PORT || '3800';
+const client = http2.connect(`http://${host}:${port}`);
+
+let settled = false;
+let timeout;
+
+function finish(exitCode, message) {
+  if (settled) {
+    return;
+  }
+
+  settled = true;
+  clearTimeout(timeout);
+  client.close();
+
+  if (message) {
+    console.error(message);
+  }
+
+  process.exit(exitCode);
+}
+
+timeout = setTimeout(() => {
+  finish(1, `Timed out waiting for node renderer on ${host}:${port}`);
+}, 2500);
+
+client.on('error', (error) => {
+  finish(1, error.message);
+});
+
+const request = client.request({ ':method': 'GET', ':path': '/info' });
+
+request.on('response', (headers) => {
+  const status = Number(headers[':status']);
+  finish(status === 200 ? 0 : 1, status === 200 ? undefined : `Unexpected node renderer status ${status}`);
+});
+
+request.on('error', (error) => {
+  finish(1, error.message);
+});
+
+request.end();

@@ -10,11 +10,16 @@ ReactOnRailsPro.configure do |config|
   demo_password_allowed =
     ENV["ALLOW_DEMO_RENDERER_PASSWORD"] == "true" &&
     (Rails.env.development? || Rails.env.test?)
+  renderer_password = ENV["RENDERER_PASSWORD"].presence
 
   config.renderer_password = if demo_password_allowed
-                               ENV.fetch("RENDERER_PASSWORD", "development_password")
+                               renderer_password || "development_password"
                              else
-                               ENV.fetch("RENDERER_PASSWORD")
+                               renderer_password ||
+                                 raise(
+                                   KeyError,
+                                   "RENDERER_PASSWORD is required unless ALLOW_DEMO_RENDERER_PASSWORD=true in development/test",
+                                 )
                              end
 
   config.rsc_payload_generation_url_path = "rsc_payload/"

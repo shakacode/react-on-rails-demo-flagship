@@ -1,6 +1,4 @@
 #!/usr/bin/env ruby
-ENV["ALLOW_DEMO_RENDERER_PASSWORD"] ||= "true"
-
 require_relative "../config/boot"
 require "active_support/continuous_integration"
 

@@ -56,7 +56,7 @@ six seeded tasks across To do / Doing / Done columns.
 `bin/dev` variants: `bin/dev` (HMR), `bin/dev static` (no HMR),
 `bin/dev prod` (production-like assets), `bin/dev help`.
 
-To run multiple worktrees at the same time, set a port set in each worktree's
+To run multiple worktrees at the same time, set unique port values in each worktree's
 `.env` file:
 
 ```bash
@@ -73,6 +73,10 @@ deployments must provide a secret `RENDERER_PASSWORD`; the app intentionally
 fails closed without that value. Set `RENDERER_URL` to the renderer workload and
 bind the renderer with `RENDERER_HOST=0.0.0.0` when Rails reaches it over a
 container network.
+
+`bin/ci` also fails closed by default. Run it with `RENDERER_PASSWORD=...` for a
+production-like check, or use `ALLOW_DEMO_RENDERER_PASSWORD=true bin/ci` for a
+disposable local/demo check.
 
 If you run with `RAILS_ENV=production` and no Pro license token, Pro will warn
 about the missing production license. That is expected for demo/evaluation use.

@@ -17,11 +17,18 @@ services:
       RENDERER_PASSWORD: "development_password"
       RENDERER_PORT: "3800"
       RENDERER_WORKERS_COUNT: "2"
+    healthcheck:
+      test: ["CMD", "node", "bin/node-renderer-healthcheck"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 10s
 
   web:
     build: .
     depends_on:
-      - node-renderer
+      node-renderer:
+        condition: service_healthy
     ports:
       - "3000:3000"
     environment:
