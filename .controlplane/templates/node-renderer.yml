@@ -24,4 +24,6 @@ spec:
     external:
       inboundAllowCIDR: []
       outboundAllowCIDR: []
+    internal:
+      inboundAllowType: same-gvc
   identityLink: "{{APP_IDENTITY_LINK}}"

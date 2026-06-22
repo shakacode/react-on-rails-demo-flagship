@@ -20,10 +20,12 @@ is not full scale-to-zero; steady RAM usage can still drive cost. Revisit
 serverless only if true idle scale-to-zero becomes a deliberate staging
 requirement.
 
-The workload keeps inbound traffic public (`0.0.0.0/0`) because this is a public
-demo. Runtime egress is denied by default (`outboundAllowCIDR: []`) because the
-app serves its own seeded SQLite data and does not need to call external
-services during normal use.
+The Rails workload keeps inbound traffic public (`0.0.0.0/0`) because this is a
+public demo. Runtime egress is denied by default (`outboundAllowCIDR: []`)
+because the app serves its own seeded SQLite data and does not need to call
+external services during normal use. The Node renderer blocks public ingress but
+allows same-GVC internal traffic so Rails can reach
+`node-renderer.<app>.cpln.local:3800`.
 
 ## Prerequisites
 
