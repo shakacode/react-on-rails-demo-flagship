@@ -5,3 +5,4 @@
 //
 // This pack only carries the global page styles.
 import '../styles/site.css';
+import 'react-on-rails-rsc/client';

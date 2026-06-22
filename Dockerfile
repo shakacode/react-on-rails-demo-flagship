@@ -4,7 +4,7 @@
 # Deterministic container boot for the React on Rails flagship demo.
 #
 #   docker compose up --build   # boots the app on http://localhost:3000
-#   bin/smoke                   # exits non-zero unless SSR HTML is served
+#   bin/smoke                   # exits non-zero unless streamed HTML is served
 #
 # Everything is pinned (Ruby, Node, gems via Gemfile.lock, npm packages via
 # package-lock.json) and all assets are precompiled at image build time, so
@@ -24,8 +24,8 @@ RUN apt-get update -qq && \
     ln -s /usr/lib/$(uname -m)-linux-gnu/libjemalloc.so.2 /usr/local/lib/libjemalloc.so && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-# Install a pinned Node.js. Needed at runtime too: open-source React on Rails
-# server-side rendering executes the server bundle through ExecJS + Node.
+# Install a pinned Node.js. Needed at runtime too: the React on Rails Pro
+# Node renderer runs from the same image as a sidecar workload.
 ARG NODE_VERSION
 RUN ARCH="$(uname -m)" && \
     case "$ARCH" in \
@@ -73,10 +73,11 @@ COPY . .
 RUN bundle exec bootsnap precompile -j 1 app/ lib/
 
 # Precompile assets: runs the Shakapacker precompile hook (React on Rails
-# pack generation) plus the Rspack client and SSR server-bundle builds.
-# SECRET_KEY_BASE_DUMMY avoids needing real credentials at build time.
-RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile && \
-    rm -rf node_modules
+# pack generation) plus the Rspack client, SSR server, and RSC bundle builds.
+# SECRET_KEY_BASE_DUMMY and the build-only renderer password avoid needing real
+# credentials at build time. Runtime containers must provide RENDERER_PASSWORD.
+RUN SECRET_KEY_BASE_DUMMY=1 RENDERER_PASSWORD=build_time_renderer_password ./bin/rails assets:precompile && \
+    npm prune --omit=dev
 
 # Final stage for app image
 FROM base
@@ -84,12 +85,15 @@ FROM base
 # Run and own only the runtime files as a non-root user for security
 RUN groupadd --system --gid 1000 rails && \
     useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash
-USER 1000:1000
 
 # Copy built artifacts: gems, application (including public/packs client
 # assets and the private ssr-generated/ server bundle)
 COPY --chown=rails:rails --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
 COPY --chown=rails:rails --from=build /rails /rails
+RUN mkdir -p /rails/.node-renderer-bundles && \
+    chown -R rails:rails /rails/.node-renderer-bundles
+
+USER 1000:1000
 
 # Entrypoint prepares and seeds the database.
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]

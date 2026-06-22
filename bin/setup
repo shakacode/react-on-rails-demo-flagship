@@ -2,6 +2,7 @@
 require "fileutils"
 
 APP_ROOT = File.expand_path("..", __dir__)
+ENV["ALLOW_DEMO_RENDERER_PASSWORD"] ||= "true"
 
 def system!(*args)
   system(*args, exception: true)

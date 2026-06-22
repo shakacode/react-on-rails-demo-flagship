@@ -1,12 +1,13 @@
+'use client';
+
 import { useMemo, type FC } from 'react';
 import { Provider } from 'react-redux';
 
 import TaskBoard from '../components/TaskBoard';
 import { createTasksStore, type RailsProps } from '../store/tasksStore';
 
-// Auto-registered by React on Rails (config.auto_load_bundle +
-// config.components_subdirectory = "ror_components").
-// Rails server-renders this tree, then the client hydrates it with a
+// Auto-registered as the client half of the RSC pair. Rails streams the
+// server component, then the browser hydrates this client component with a
 // Redux Toolkit store seeded from the same props.
 const TasksApp: FC<RailsProps> = (props) => {
   const store = useMemo(() => createTasksStore(props), [props]);

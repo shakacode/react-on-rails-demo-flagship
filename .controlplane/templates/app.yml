@@ -16,6 +16,12 @@ spec:
       value: "3000"
     - name: SECRET_KEY_BASE
       value: "cpln://secret/{{APP_SECRETS}}.SECRET_KEY_BASE"
+    - name: RENDERER_URL
+      value: "http://node-renderer.{{APP_NAME}}.cpln.local:3800"
+    - name: RENDERER_HOST
+      value: "0.0.0.0"
+    - name: RENDERER_PASSWORD
+      value: "cpln://secret/{{APP_SECRETS}}.RENDERER_PASSWORD"
   staticPlacement:
     locationLinks:
       - "{{APP_LOCATION_LINK}}"

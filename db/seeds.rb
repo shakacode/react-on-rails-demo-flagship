@@ -1,10 +1,10 @@
 # Deterministic seed data for the flagship demo.
 #
 # Idempotent: running `bin/rails db:seed` repeatedly always converges to the
-# same six tasks. The Docker smoke check greps the server-rendered HTML for
+# same six tasks. The Docker smoke check greps the streamed HTML for
 # "Render the first screen on the server", so keep that title stable.
 
-SEED_TASKS = [
+seed_tasks = [
   {
     title: 'Render the first screen on the server',
     notes: 'This very list arrived as HTML from Rails. View source: the markup is there before any JavaScript runs.',
@@ -13,7 +13,7 @@ SEED_TASKS = [
   },
   {
     title: 'Hydrate with Redux Toolkit',
-    notes: 'The same props that fed SSR seed the Redux store, so the client picks up exactly where the server left off.',
+    notes: 'The same props that fed the stream seed the Redux store, so the client picks up exactly where the server left off.',
     status: 'done',
     position: 2
   },
@@ -37,18 +37,18 @@ SEED_TASKS = [
   },
   {
     title: 'Read the React on Rails docs',
-    notes: 'https://reactonrails.com - SSR, auto-registration, and the full configuration reference.',
+    notes: 'https://reactonrails.com - RSC, streaming, auto-registration, and the full configuration reference.',
     status: 'todo',
     position: 6
   }
 ].freeze
 
-SEED_TASKS.each do |attrs|
+seed_tasks.each do |attrs|
   task = Task.find_or_initialize_by(position: attrs[:position])
   task.update!(attrs)
 end
 
 # Remove any extra rows so container boots are deterministic.
-Task.where.not(position: SEED_TASKS.map { |t| t[:position] }).destroy_all
+Task.where.not(position: seed_tasks.map { |t| t[:position] }).destroy_all
 
 puts "Seeded #{Task.count} tasks."

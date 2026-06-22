@@ -2,13 +2,14 @@
 // https://github.com/shakacode/react_on_rails_demo_ssr_hmr/blob/master/config/webpack/serverWebpackConfig.js
 
 const { merge, config } = require('shakapacker');
+const { RSCRspackPlugin } = require('react-on-rails-rsc/RspackPlugin');
 const commonWebpackConfig = require('./commonWebpackConfig');
 
 const bundler = config.assets_bundler === 'rspack'
   ? require('@rspack/core')
   : require('webpack');
 
-const configureServer = () => {
+const configureServer = ({ rscBundle = false } = {}) => {
   // We need to use "merge" because the clientConfigObject, EVEN after running
   // toWebpackConfig() is a mutable GLOBAL. Thus any changes, like modifying the
   // entry value will result in changing the client config!
@@ -48,6 +49,19 @@ const configureServer = () => {
     }
   });
 
+  if (!rscBundle) {
+    serverWebpackConfig.plugins.push(new RSCRspackPlugin({
+      isServer: true,
+      clientReferences: [
+        {
+          directory: './app/javascript',
+          recursive: true,
+          include: /\.[cm]?[jt]sx?$/,
+        },
+      ],
+    }));
+  }
+
   // No splitting of chunks for a server bundle
   serverWebpackConfig.optimization = {
     minimize: false,
@@ -64,8 +78,7 @@ const configureServer = () => {
   serverWebpackConfig.output = {
     filename: 'server-bundle.js',
     globalObject: 'this',
-    // If using the React on Rails Pro node server renderer, uncomment the next line
-    // libraryTarget: 'commonjs2',
+    libraryTarget: 'commonjs2',
     path: serverBundleOutputPath,
     // No publicPath needed since server bundles are not served via web
     // https://webpack.js.org/configuration/output/#outputglobalobject
@@ -74,7 +87,7 @@ const configureServer = () => {
   // Validate server bundle output path configuration
   // For Shakapacker 9.0+, verify privateOutputPath is configured in shakapacker.yml
   if (!config.privateOutputPath) {
-    console.warn('⚠️  Shakapacker 9.0+ detected but private_output_path not configured in shakapacker.yml');
+    console.warn('Warning: Shakapacker 9.0+ detected but private_output_path not configured in shakapacker.yml');
     console.warn('   Add to config/shakapacker.yml:');
     console.warn('     private_output_path: ssr-generated');
     console.warn('   Run: rails react_on_rails:doctor to validate your configuration');
@@ -142,8 +155,7 @@ const configureServer = () => {
 
   // If using the default 'web', then libraries like Emotion and loadable-components
   // break with SSR. The fix is to use a node renderer and change the target.
-  // If using the React on Rails Pro node server renderer, uncomment the next line
-  // serverWebpackConfig.target = 'node'
+  serverWebpackConfig.target = 'node';
 
   return serverWebpackConfig;
 };

@@ -1,5 +1,6 @@
 import TasksApp from './TasksApp.client';
+import type { RailsProps } from '../store/tasksStore';
 
-// Same component on the server: the Redux store is created from the Rails
-// props during SSR, so the server HTML matches the hydrated client exactly.
-export default TasksApp;
+export default function TasksAppServer(props: RailsProps) {
+  return <TasksApp {...props} />;
+}
