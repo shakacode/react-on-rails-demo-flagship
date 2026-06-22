@@ -3,6 +3,7 @@
 ReactOnRailsPro.configure do |config|
   config.enable_rsc_support = true
   config.rsc_bundle_js_file = "rsc-bundle.js"
+  config.rendering_returns_promises = true
 
   config.server_renderer = "NodeRenderer"
   config.renderer_use_fallback_exec_js = false
