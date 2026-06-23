@@ -45,6 +45,10 @@ reactOnRailsProNodeRenderer({
   allWorkersRestartInterval: env.RENDERER_ALL_WORKERS_RESTART_INTERVAL || 60,
   delayBetweenIndividualWorkerRestarts: 1,
   supportModules: true,
+  additionalContext: {
+    AbortController,
+    AbortSignal,
+  },
   stubTimers: false,
   replayServerAsyncOperationLogs: developmentLike,
 });
