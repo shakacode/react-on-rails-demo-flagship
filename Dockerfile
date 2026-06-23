@@ -61,8 +61,9 @@ RUN bundle install && \
     # -j 1 disable parallel compilation to avoid a QEMU bug: https://github.com/rails/bootsnap/issues/495
     bundle exec bootsnap precompile -j 1 --gemfile
 
-# Install pinned npm packages
-COPY package.json package-lock.json ./
+# Install pinned npm packages. The npm config is part of the lockfile contract
+# for prerelease peer ranges.
+COPY .npmrc package.json package-lock.json ./
 RUN npm ci
 
 # Copy application code
