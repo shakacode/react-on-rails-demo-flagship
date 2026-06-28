@@ -176,6 +176,7 @@ component; `TasksApp.server.tsx` remains the server component entrypoint.
 - [React on Rails Pro](https://reactonrails.com/pro)
 - [RSC tutorial](https://reactonrails.com/docs/pro/react-server-components/tutorial)
 - [Examples and migration references](https://reactonrails.com/docs/getting-started/examples-and-references/)
+- [Using TanStack Query](https://reactonrails.com/docs/building-features/tanstack-query) - the recommended client-side server-state layer; prefer it over hand-syncing server data into a Redux store. See the [TanStack starter](https://starter.reactonrails.com).
   - the full demo gallery.
 - `npx create-react-on-rails-app` - scaffold a fresh empty app with the same
   conventions (this repo is the finished Pro/RSC example counterpart).
