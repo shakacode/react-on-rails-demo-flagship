@@ -25,7 +25,7 @@ JSON mutations, one app, one deploy.
 | react_on_rails_pro (gem + npm) | 17.0.0-rc.6 |
 | react-on-rails-rsc | 19.2.0 |
 | Pro Node renderer | 17.0.0-rc.6 |
-| Shakapacker | 10.2.0 (Rspack 2 bundler) |
+| Shakapacker | 10.3.0 (Rspack 2 bundler) |
 | React / ReactDOM | 19.2.7 (coordinated with react-on-rails-rsc 19.2.x) |
 | Redux Toolkit | 2.12.0 |
 | TypeScript | 6.0.3 |
