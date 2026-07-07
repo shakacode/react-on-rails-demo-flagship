@@ -22,9 +22,9 @@ JSON mutations, one app, one deploy.
 | --- | --- |
 | Ruby | 3.4.6 |
 | Rails | 8.1.3 |
-| react_on_rails_pro (gem + npm) | 17.0.0-rc.6 |
-| react-on-rails-rsc | 19.2.0 |
-| Pro Node renderer | 17.0.0-rc.6 |
+| react_on_rails_pro (gem + npm) | 17.0.0-rc.7 |
+| react-on-rails-rsc | 19.2.1-rc.0 |
+| Pro Node renderer | 17.0.0-rc.7 |
 | Shakapacker | 10.3.0 (Rspack 2 bundler) |
 | React / ReactDOM | 19.2.7 (coordinated with react-on-rails-rsc 19.2.x) |
 | Redux Toolkit | 2.12.0 |
