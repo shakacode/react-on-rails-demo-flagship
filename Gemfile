@@ -31,4 +31,4 @@ end
 
 gem "shakapacker", "= 10.3.0"
 
-gem "react_on_rails_pro", "= 17.0.0.rc.6"
+gem "react_on_rails_pro", "= 17.0.0.rc.7"
