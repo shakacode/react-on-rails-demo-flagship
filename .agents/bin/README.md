@@ -7,9 +7,9 @@ is absent means that capability is n/a in this repository.
 
 | Script | Purpose | This repo runs |
 | --- | --- | --- |
-| `setup` | Install dependencies | n/a |
+| `setup` | Install dependencies | `env ALLOW_DEMO_RENDERER_PASSWORD=true bin/setup` |
 | `validate` | Pre-push gate | `env ALLOW_DEMO_RENDERER_PASSWORD=true bin/ci` |
-| `test` | Run tests | `bin/rails test` |
+| `test` | Run tests | `env ALLOW_DEMO_RENDERER_PASSWORD=true bin/rails test` |
 | `lint` | Lint / format | n/a |
 | `build` | Build / type-check | n/a |
 | `docs` | Docs checks | n/a |
