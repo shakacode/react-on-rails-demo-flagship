@@ -6,11 +6,14 @@ The clone-and-run flagship demo for **[React on Rails Pro](https://reactonrails.
 React Server Components, streaming SSR, the Pro Node renderer, React 19,
 Redux Toolkit, Shakapacker, Rspack, TypeScript, and a real Rails CRUD app.
 
-This repo intentionally shows the Pro/RSC happy path as the default. React on
-Rails Pro has a friendly license: it is free for evaluation and non-production
-use, and free or low-cost production licenses are available for startups and
-small companies. You can clone this demo, run it locally, and inspect the Pro
-RSC architecture before deciding what license you need for production.
+This repo intentionally shows the React on Rails Pro/RSC happy path as the
+default. The Pro packages are commercially licensed. Starting with the stable
+`react-on-rails-rsc` 19.2.1 release, RSC is licensed on the same commercial terms.
+Evaluation, education, demos, tutorials, workshops, and personal or hobby use
+remain royalty-free under those terms. Production Use requires an appropriate
+paid or Complimentary OSS license. You can clone this demo, run it locally, and
+inspect the Pro/RSC architecture before deciding what license you need for
+production.
 
 This is the thing Next.js structurally cannot show you: a React Server Component
 streamed through a real Rails view, server-owned data from ActiveRecord, Rails
@@ -203,4 +206,19 @@ the default app, because the flagship exists to show the Pro/RSC architecture.
 
 ## License
 
-MIT
+This demo repository's own code is available under the [MIT License](LICENSE.md).
+Its dependencies have their own license terms.
+
+The React on Rails Pro packages demonstrated here—`react_on_rails_pro`,
+`react-on-rails-pro`, and `react-on-rails-pro-node-renderer`—are commercially
+licensed. Starting with the stable `react-on-rails-rsc` 19.2.1 release, RSC is
+licensed on the same terms. Evaluation, education, demos, tutorials, workshops,
+and personal or hobby use remain royalty-free under those terms. Production Use
+requires an appropriate paid or Complimentary OSS license.
+
+All permitted uses must retain any generated product-level attribution. The
+Rails/Pro integration emits exactly one attribution comment per HTML document
+containing Pro-rendered output; `react-on-rails-rsc` does not add a separate
+package-level comment. Read the
+[canonical React on Rails Pro license terms](https://github.com/shakacode/react_on_rails/blob/main/REACT-ON-RAILS-PRO-LICENSE.md)
+for the complete conditions.
