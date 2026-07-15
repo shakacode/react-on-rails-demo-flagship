@@ -6,11 +6,13 @@ The clone-and-run flagship demo for **[React on Rails Pro](https://reactonrails.
 React Server Components, streaming SSR, the Pro Node renderer, React 19,
 Redux Toolkit, Shakapacker, Rspack, TypeScript, and a real Rails CRUD app.
 
-This repo intentionally shows the Pro/RSC happy path as the default. The Pro/RSC
-packages are free for evaluation and for non-production education, demos, and
-personal use. Production Use requires an appropriate paid or complimentary
-license. You can clone this demo, run it locally, and inspect the Pro/RSC
-architecture before deciding what license you need for production.
+This repo intentionally shows the commercially licensed Pro/RSC happy path as
+the default. The current path and the stable `react-on-rails-rsc` 19.2.1 release
+use the commercial terms. Evaluation, education, demos, tutorials, workshops,
+and personal or hobby use remain royalty-free under those terms. Production Use
+requires an appropriate paid or Complimentary OSS license. You can clone this
+demo, run it locally, and inspect the Pro/RSC architecture before deciding what
+license you need for production.
 
 This is the thing Next.js structurally cannot show you: a React Server Component
 streamed through a real Rails view, server-owned data from ActiveRecord, Rails
@@ -206,14 +208,17 @@ the default app, because the flagship exists to show the Pro/RSC architecture.
 This demo repository's own code is available under the [MIT License](LICENSE.md).
 Its dependencies have their own license terms.
 
-`react_on_rails_pro`, `react-on-rails-pro`, and
-`react-on-rails-pro-node-renderer` are governed by the React on Rails Pro v2.2
-commercial license. Beginning with `react-on-rails-rsc` 19.2.1, that commercial
-license also governs the package's ShakaCode-owned or otherwise authorized
-portions. Third-party code and code distributed under prior licenses remain
-subject to their applicable notices and terms.
+The current React on Rails Pro/RSC path demonstrated here is commercially
+licensed. Its packages include `react_on_rails_pro`, `react-on-rails-pro`,
+`react-on-rails-pro-node-renderer`, and `react-on-rails-rsc`; the stable
+`react-on-rails-rsc` 19.2.1 release is licensed on the same terms. Evaluation,
+education, demos, tutorials, workshops, and personal or hobby use remain
+royalty-free under those terms. Production Use requires an appropriate paid or
+Complimentary OSS license.
 
-Evaluation and non-production education, demo, and personal use of those
-commercially licensed portions remain free. Production Use requires an
-appropriate paid or complimentary React on Rails Pro license; see
-[React on Rails Pro](https://reactonrails.com/pro) for details.
+All permitted uses must retain any generated product-level attribution. The
+Rails/Pro integration emits exactly one attribution comment per HTML document
+containing Pro-rendered output; `react-on-rails-rsc` does not add a separate
+package-level comment. Read the
+[canonical React on Rails Pro license terms](https://github.com/shakacode/react_on_rails/blob/main/REACT-ON-RAILS-PRO-LICENSE.md)
+for the complete conditions.
