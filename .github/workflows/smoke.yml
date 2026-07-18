@@ -41,6 +41,21 @@ jobs:
       - name: Run RSC smoke check
         run: bin/smoke
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22.12.0"
+          cache: npm
+
+      - name: Install browser test dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run browser behavior contract
+        run: PLAYWRIGHT_BASE_URL=http://localhost:3000 npm run test:browser
+
       - name: Show app logs on failure
         if: failure()
         run: docker compose logs
