@@ -1,6 +1,6 @@
 # React on Rails Pro Flagship Demo
 
-[![RSC Smoke](https://github.com/shakacode/react-on-rails-demo-flagship/actions/workflows/smoke.yml/badge.svg)](https://github.com/shakacode/react-on-rails-demo-flagship/actions/workflows/smoke.yml)
+[![RSC Smoke](https://github.com/shakacode/react-on-rails-demo-flagship/actions/workflows/demo-fleet-smoke.yml/badge.svg)](https://github.com/shakacode/react-on-rails-demo-flagship/actions/workflows/demo-fleet-smoke.yml)
 
 The clone-and-run flagship demo for **[React on Rails Pro](https://reactonrails.com/pro)**:
 React Server Components, streaming SSR, the Pro Node renderer, React 19,
@@ -25,9 +25,9 @@ JSON mutations, one app, one deploy.
 | --- | --- |
 | Ruby | 3.4.6 |
 | Rails | 8.1.3 |
-| react_on_rails_pro (gem + npm) | 17.0.0-rc.10 |
+| react_on_rails_pro (gem + npm) | 17.0.0 |
 | react-on-rails-rsc | 19.2.1 |
-| Pro Node renderer | 17.0.0-rc.10 |
+| Pro Node renderer | 17.0.0 |
 | Shakapacker | 10.3.0 (Rspack 2 bundler) |
 | React / ReactDOM | 19.2.7 (coordinated with react-on-rails-rsc 19.2.x) |
 | Redux Toolkit | 2.12.0 |
@@ -150,7 +150,7 @@ network access after the image build.
 | Visible error states | `app/javascript/src/TasksApp/components/ErrorBanner.tsx` (try submitting an empty title) |
 | Deterministic seeds | `db/seeds.rb` |
 | RSC smoke check | `bin/smoke` |
-| CI (PR + push + weekly cron) | `.github/workflows/smoke.yml` |
+| CI (PR + push + weekly cron) | `.github/workflows/demo-fleet-smoke.yml` |
 
 ## How Pro/RSC Works Here
 
