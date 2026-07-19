@@ -25,4 +25,4 @@ jobs:
       install-command: bundle config set path vendor/bundle && bundle install --jobs 4 && npm ci && npx playwright install --with-deps chromium
       test-command: npm run typecheck
       build-command: docker compose build
-      smoke-command: docker compose up -d --build && bin/smoke && PLAYWRIGHT_BASE_URL=http://localhost:3000 npm run test:browser
+      smoke-command: docker compose up -d && bin/smoke && PLAYWRIGHT_BASE_URL=http://localhost:3000 npm run test:browser

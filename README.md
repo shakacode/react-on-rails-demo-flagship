@@ -1,6 +1,6 @@
 # React on Rails Pro Flagship Demo
 
-[![RSC Smoke](https://github.com/shakacode/react-on-rails-demo-flagship/actions/workflows/smoke.yml/badge.svg)](https://github.com/shakacode/react-on-rails-demo-flagship/actions/workflows/smoke.yml)
+[![RSC Smoke](https://github.com/shakacode/react-on-rails-demo-flagship/actions/workflows/demo-fleet-smoke.yml/badge.svg)](https://github.com/shakacode/react-on-rails-demo-flagship/actions/workflows/demo-fleet-smoke.yml)
 
 The clone-and-run flagship demo for **[React on Rails Pro](https://reactonrails.com/pro)**:
 React Server Components, streaming SSR, the Pro Node renderer, React 19,
@@ -150,7 +150,7 @@ network access after the image build.
 | Visible error states | `app/javascript/src/TasksApp/components/ErrorBanner.tsx` (try submitting an empty title) |
 | Deterministic seeds | `db/seeds.rb` |
 | RSC smoke check | `bin/smoke` |
-| CI (PR + push + weekly cron) | `.github/workflows/smoke.yml` |
+| CI (PR + push + weekly cron) | `.github/workflows/demo-fleet-smoke.yml` |
 
 ## How Pro/RSC Works Here
 
