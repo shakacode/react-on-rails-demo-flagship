@@ -135,6 +135,23 @@ time, the Node renderer runs as a sidecar service, and the SQLite database is
 created and seeded at boot. The containers boot deterministically with no
 network access after the image build.
 
+### Rolling-deploy VM headroom
+
+The demo gives each Node renderer worker a four-context VM pool. An RSC rollout
+can send one draining and one current bundle generation to the same worker, and
+each generation uses a server context plus an RSC context:
+
+```text
+2 simultaneous generations × (1 server + 1 RSC) = 4 contexts per worker
+```
+
+`MAX_VM_POOL_SIZE` is a hard cap, not an eager allocation target. The container
+example sets it explicitly to `4`; `client/node-renderer.js` uses the same
+bounded default and rejects invalid values. With the demo's two renderer
+workers, one replica can retain at most eight compiled contexts. Production
+memory requests and limits should include that per-worker headroom, multiplied
+by renderer replicas and any temporary rollout surge.
+
 ## What to look at
 
 | Concern | File |
