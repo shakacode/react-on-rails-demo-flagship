@@ -1,0 +1,28 @@
+<div class="page">
+  <header class="hero">
+    <p class="eyebrow">React on Rails Pro &middot; RSC Flagship Demo</p>
+    <h1>Slow Section (Late Suspense Boundary)</h1>
+    <p class="lead">
+      The header you are reading streamed immediately. The stats panel below is
+      held back by a deliberately slow server-side query
+      (<code><%= @delay_ms %>ms</code> &mdash; change it with
+      <code>?delay_ms=3000</code>), so its Suspense boundary resolves after the
+      first HTML flush. Watch the skeleton get replaced by streamed HTML before
+      any client JavaScript runs.
+    </p>
+  </header>
+
+  <main class="surface">
+    <%= stream_react_component_with_async_props("SlowSectionApp",
+          props: { delayMs: @delay_ms }) do |emit|
+      # Demo only: sleep stands in for a slow database query. It blocks this
+      # Puma thread on purpose so the boundary reliably resolves post-shell.
+      sleep(@delay_ms / 1000.0)
+      emit.call("slowStats", {
+        renderedAt: Time.current.utc.iso8601(3),
+        delayMs: @delay_ms,
+        totals: { open: 4, doing: 2, done: 7 }
+      })
+    end %>
+  </main>
+</div>
