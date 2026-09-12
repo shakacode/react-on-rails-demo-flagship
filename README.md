@@ -26,7 +26,7 @@ JSON mutations, one app, one deploy.
 | Ruby | 3.4.6 |
 | Rails | 8.1.3 |
 | react_on_rails_pro (gem + npm) | 17.1.0.rc.3 / 17.1.0-rc.3 |
-| react-on-rails-rsc | 19.3.0-rc.3 |
+| react-on-rails-rsc | 19.3.0-rc.4 |
 | Pro Node renderer | 17.1.0-rc.3 |
 | Shakapacker | 10.3.2 (Rspack 2 bundler) |
 | React / ReactDOM | 19.2.8 (coordinated with react-on-rails-rsc 19.3.x) |
