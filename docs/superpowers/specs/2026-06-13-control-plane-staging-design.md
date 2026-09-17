@@ -1,5 +1,8 @@
 # Control Plane Staging Design
 
+> Historical note: this staging-only design was superseded by the full review,
+> staging, and production flow documented in `.controlplane/README.md`.
+
 ## Context
 
 The flagship React on Rails demo already has a deterministic production

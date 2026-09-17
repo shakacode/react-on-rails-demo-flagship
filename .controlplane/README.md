@@ -1,99 +1,96 @@
-# Control Plane Staging
+# Control Plane Deployment Flow
 
-This repository publishes one staging app:
+This repository uses `cpflow` for opt-in pull-request review apps, automatic
+staging deploys from `main`, and manual promotion from staging to production.
+The generated GitHub Actions use `cpflow` v5.3.0 and pin the immutable release
+commit `b1e5ff4a04adfccfd8b59996e8abdbb5defb3fd6`; see
+[`.github/cpflow-help.md`](../.github/cpflow-help.md) for the complete commands,
+settings, and upgrade procedure. After regenerating wrappers for a future
+release, repin them with `bin/pin-cpflow-github-ref <release-commit-sha>`.
 
-```text
-react-on-rails-demo-flagship-staging
-```
+## Runtime Shape
 
-The deployment intentionally stays staging-only. It does not create review apps,
-production promotion, external databases, or persistent SQLite volumes. The
-container entrypoint runs `db:prepare db:seed` whenever the Rails server starts,
-so staging returns to the deterministic six-task demo state after each workload
-restart or deploy.
+The same image runs two standard workloads: public Rails and an internal Pro
+Node renderer. Both use one warm replica with disabled autoscaling and Capacity
+AI. Rails can reach `node-renderer.<app>.cpln.local:3800`; the renderer has no
+public ingress, and neither workload needs runtime Internet egress.
 
-The Rails and Node renderer workloads stay `type: standard` with the explicit
-autoscaling metric disabled and `capacityAI: true`. That matches the cost
-posture for public demos and starter staging apps: Control Plane can right-size
-idle capacity without a standard-to-serverless delete/recreate migration. This
-is not full scale-to-zero; steady RAM usage can still drive cost. Revisit
-serverless only if true idle scale-to-zero becomes a deliberate staging
-requirement.
+This is a deterministic public demo, not a persistent data service. Its
+entrypoint runs `db:prepare db:seed` whenever Rails starts, so review, staging,
+and production return to the six-task sample state after each restart or
+deploy. No external database or persistent SQLite volume is provisioned.
 
-The Rails workload keeps inbound traffic public (`0.0.0.0/0`) because this is a
-public demo. Runtime egress is denied by default (`outboundAllowCIDR: []`)
-because the app serves its own seeded SQLite data and does not need to call
-external services during normal use. The Node renderer blocks public ingress but
-allows same-GVC internal traffic so Rails can reach
-`node-renderer.<app>.cpln.local:3800`.
+## One-Time Bootstrap
 
-## Prerequisites
+Install the clients and create a shared review-app dictionary before enabling
+review deployments:
 
-```bash
-npm i -g @controlplane/cli
-gem install cpflow -v 5.1.1
+```sh
+npm install --global @controlplane/cli
+gem install cpflow -v 5.3.0
 cpln login
-```
 
-## First-Time Setup
-
-Create or update the staging secret dictionary:
-
-```bash
 cpln secret create-dictionary \
-  --name react-on-rails-demo-flagship-staging-secrets \
-  --org shakacode-open-source-examples-staging \
-  --entry SECRET_KEY_BASE="$(bin/rails secret)" \
-  --entry RENDERER_PASSWORD="$(ruby -rsecurerandom -e 'puts SecureRandom.hex(32)')"
+  --name react-on-rails-demo-flagship-review-secrets \
+  --org "$CPLN_ORG_STAGING" \
+  --entry "SECRET_KEY_BASE=$(bin/rails secret)" \
+  --entry "RENDERER_PASSWORD=$(ruby -rsecurerandom -e 'puts SecureRandom.hex(32)')"
 ```
 
-Provision the persistent staging GVC and workload templates:
+Review apps execute pull-request code. Keep this dictionary disposable and do
+not reuse staging, production, license, or third-party credentials in it.
 
-```bash
+Bootstrap the persistent staging and production GVCs before their first deploy:
+
+```sh
 cpflow setup-app \
   -a react-on-rails-demo-flagship-staging \
-  --org shakacode-open-source-examples-staging \
+  --org "$CPLN_ORG_STAGING" \
+  --skip-post-creation-hook
+
+cpflow setup-app \
+  -a react-on-rails-demo-flagship-production \
+  --org "$CPLN_ORG_PRODUCTION" \
   --skip-post-creation-hook
 ```
 
-## Manual Deploy
+Populate distinct `SECRET_KEY_BASE` and `RENDERER_PASSWORD` values in the
+generated staging and production app dictionaries. For later template changes,
+run `cpflow apply-template` and ensure each app identity can `reveal` its app
+secret policy.
 
-```bash
+## GitHub Configuration
+
+Store `CPLN_TOKEN_STAGING` as a repository secret. Set these repository
+variables:
+
+| Name | Value |
+| --- | --- |
+| `CPLN_ORG_STAGING` | Staging Control Plane organization |
+| `STAGING_APP_NAME` | `react-on-rails-demo-flagship-staging` |
+| `PRIMARY_WORKLOAD` | `rails` |
+
+The review prefix is inferred from `.controlplane/controlplane.yml` unless
+`REVIEW_APP_PREFIX` overrides it.
+
+Create a protected `production` GitHub Environment with required reviewers and
+self-review disabled. Store `CPLN_TOKEN_PRODUCTION` only as an Environment
+secret, and set `CPLN_ORG_PRODUCTION` and
+`PRODUCTION_APP_NAME=react-on-rails-demo-flagship-production` there as
+Environment variables. Do not create a repository or organization secret named
+`CPLN_TOKEN_PRODUCTION`.
+
+## Manual Staging Deploy
+
+```sh
 cpflow build-image \
   -a react-on-rails-demo-flagship-staging \
-  --org shakacode-open-source-examples-staging \
+  --org "$CPLN_ORG_STAGING" \
   --commit "$(git rev-parse HEAD)"
 
 cpflow deploy-image \
   -a react-on-rails-demo-flagship-staging \
-  --org shakacode-open-source-examples-staging
+  --org "$CPLN_ORG_STAGING"
 ```
 
-Smoke the deployed app:
-
-```bash
-SMOKE_URL="$(
-  cpln workload get rails \
-    --gvc react-on-rails-demo-flagship-staging \
-    --org shakacode-open-source-examples-staging \
-    -o json | jq -r '.status.endpoint'
-)" bin/smoke
-```
-
-## GitHub Actions Setup
-
-Configure these repository settings before relying on automatic staging deploys:
-
-| Name | Type | Value |
-| --- | --- | --- |
-| `CPLN_TOKEN_STAGING` | Repository secret | Control Plane token scoped to `shakacode-open-source-examples-staging`. |
-| `CPLN_ORG_STAGING` | Repository variable | `shakacode-open-source-examples-staging` |
-| `STAGING_APP_NAME` | Repository variable | `react-on-rails-demo-flagship-staging` |
-
-The staging workflow runs on pushes to `main` and manual dispatches. It builds
-with the existing root `Dockerfile` through `.controlplane/controlplane.yml`'s
-`dockerfile: ../Dockerfile` setting.
-
-If this app is ever promoted from a public demo to a user-facing availability
-target, revisit the disabled autoscaling metric and Capacity AI posture before
-enabling production promotion or uptime monitoring.
+Use `bin/smoke` against the Rails workload endpoint after deployment.
