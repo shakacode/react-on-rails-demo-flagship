@@ -1,5 +1,8 @@
 # Control Plane Staging Implementation Plan
 
+> Historical note: this staging-only plan was superseded by the full review,
+> staging, and production flow documented in `.controlplane/README.md`.
+
 ## Goal
 
 Publish the flagship demo to Control Plane staging without adding review apps or

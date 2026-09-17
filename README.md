@@ -24,7 +24,7 @@ JSON mutations, one app, one deploy.
 | Layer | Version |
 | --- | --- |
 | Ruby | 3.4.6 |
-| Rails | 8.1.3 |
+| Rails | 8.1.3.1 |
 | react_on_rails_pro (gem + npm) | 17.1.0.rc.5 / 17.1.0-rc.5 |
 | react-on-rails-rsc | 19.3.0-rc.4 |
 | Pro Node renderer | 17.1.0-rc.5 |
@@ -94,6 +94,13 @@ disposable local/demo check.
 If you run with `RAILS_ENV=production` and no Pro license token, Pro will warn
 about the missing production license. That is expected for demo/evaluation use.
 Use a production license token before using this architecture in production.
+
+## Control Plane Flow
+
+The repo includes opt-in pull-request review apps, automatic staging deploys
+from `main`, and protected manual promotion from staging to production through
+`cpflow`. See [`.controlplane/README.md`](.controlplane/README.md) for the
+runtime shape, one-time secret bootstrap, GitHub settings, and upgrade process.
 
 ### Success signals (machine-checkable)
 
