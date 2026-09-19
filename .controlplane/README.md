@@ -6,7 +6,8 @@ The generated GitHub Actions use `cpflow` v5.3.0 and pin the immutable release
 commit `b1e5ff4a04adfccfd8b59996e8abdbb5defb3fd6`; see
 [`.github/cpflow-help.md`](../.github/cpflow-help.md) for the complete commands,
 settings, and upgrade procedure. After regenerating wrappers for a future
-release, repin them with `bin/pin-cpflow-github-ref <release-commit-sha>`.
+release, repin them with `bin/pin-cpflow-github-ref <release-commit-sha>`, then
+update the recorded release and commit in this file and `.github/cpflow-help.md`.
 
 ## Runtime Shape
 
@@ -56,8 +57,20 @@ cpflow setup-app \
 
 Populate distinct `SECRET_KEY_BASE` and `RENDERER_PASSWORD` values in the
 generated staging and production app dictionaries. For later template changes,
-run `cpflow apply-template` and ensure each app identity can `reveal` its app
-secret policy.
+apply all workload templates again and ensure each app identity can `reveal`
+its app secret policy:
+
+```sh
+cpflow apply-template \
+  -a react-on-rails-demo-flagship-staging \
+  --org "$CPLN_ORG_STAGING" \
+  app rails node-renderer
+
+cpflow apply-template \
+  -a react-on-rails-demo-flagship-production \
+  --org "$CPLN_ORG_PRODUCTION" \
+  app rails node-renderer
+```
 
 ## GitHub Configuration
 

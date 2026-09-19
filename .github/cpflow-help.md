@@ -132,18 +132,17 @@ production org, using production-only secrets and values.
 
 ## Version Locking
 
-Generated wrappers pin Control Plane Flow with a release tag, for example
-`v5.3.0`. Reusable review-app, staging, cleanup, and
-helper workflows pin the tag in their `uses:` ref. Production promotion pins
-the same tag in the `Checkout control-plane-flow actions` step so the
-caller-owned job can keep `environment: production` and receive production
-environment secrets directly.
+Generated wrappers currently pin the immutable Control Plane Flow commit
+`b1e5ff4a04adfccfd8b59996e8abdbb5defb3fd6` from the `v5.3.0` release.
+Reusable review-app, staging, cleanup, and helper workflows use that SHA in
+their `uses:` refs. Production promotion pins the same SHA in the `Checkout
+control-plane-flow actions` step so the caller-owned job can keep
+`environment: production` and receive production environment secrets directly.
 
 Leave `CPFLOW_VERSION` unset so the workflow builds cpflow from the same
-checked-out upstream source. If you set `CPFLOW_VERSION`, it must match the
-release tag your wrappers are pinned to: a `CPFLOW_VERSION=5.3.x` runtime
-override goes with a wrapper pinned to `uses: ...@v5.3.x` (substitute the
-release you pinned above).
+checked-out upstream source. Set `CPFLOW_VERSION=5.3.0` only if every wrapper,
+the production checkout, and `control_plane_flow_ref` are changed together to
+the matching `v5.3.0` tag.
 
 After updating the `cpflow` gem in this repo, update the generated wrappers in
 the same PR:
@@ -176,11 +175,16 @@ Most apps do not need these:
 | Name | Notes |
 | --- | --- |
 | `DOCKER_BUILD_EXTRA_ARGS` | Newline-delimited extra Docker build tokens. |
-| `DOCKER_BUILD_SSH_KEY` | Read-only, revocable deploy key for Docker builds that fetch private dependencies. Do not use a personal SSH key. |
 | `DOCKER_BUILD_SSH_KNOWN_HOSTS` | SSH known_hosts entries when SSH build hosts are not GitHub.com. |
 | `REVIEW_APP_DEPLOYING_ICON_URL` | Cosmetic custom image URL for the animated deploying icon. Set to `none` to use the text fallback icon. |
 | `STAGING_APP_BRANCH` | Custom staging branch. The branch must also appear in `cpflow-deploy-staging.yml`'s push filter. |
 | `CPLN_CLI_VERSION` | Pin a specific `@controlplane/cli` version; normally leave unset. |
+
+## Optional GitHub Actions Secrets
+
+| Name | Notes |
+| --- | --- |
+| `DOCKER_BUILD_SSH_KEY` | Read-only, revocable deploy key for Docker builds that fetch private dependencies. Do not use a personal SSH key. |
 
 The PR-open help workflow posts a short command reference whenever the generated
 wrapper exists. That is intentional for configured demo repos. Forks or clones

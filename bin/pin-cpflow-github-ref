@@ -11,6 +11,8 @@ USAGE = <<~USAGE
   This updates generated reusable-workflow `uses:` refs plus the production
   workflow's pinned control-plane-flow checkout and setup validation ref.
   Regenerate from the cpflow gem when templates changed.
+  Update release-specific references in .controlplane/README.md and
+  .github/cpflow-help.md separately after repinning.
   Use --allow-moving-ref only for short-lived local branch/ref experiments.
 USAGE
 

@@ -110,6 +110,24 @@ jobs:
             variable:STAGING_APP_NAME
             variable:PRODUCTION_APP_NAME
 
+      - name: Validate promotion tuning
+        env:
+          ROLLBACK_READINESS_RETRIES: ${{ env.ROLLBACK_READINESS_RETRIES }}
+          ROLLBACK_READINESS_INTERVAL: ${{ env.ROLLBACK_READINESS_INTERVAL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if ! [[ "${ROLLBACK_READINESS_RETRIES}" =~ ^[1-9][0-9]*$ ]]; then
+            echo "::error::ROLLBACK_READINESS_RETRIES must be a positive integer."
+            exit 1
+          fi
+
+          if ! [[ "${ROLLBACK_READINESS_INTERVAL}" =~ ^[0-9]+$ ]]; then
+            echo "::error::ROLLBACK_READINESS_INTERVAL must be a non-negative integer."
+            exit 1
+          fi
+
       - name: Normalize Control Plane org names
         id: cpln-orgs
         env:
