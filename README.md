@@ -29,15 +29,16 @@ JSON mutations, one app, one deploy.
 | react-on-rails-rsc | 19.3.0 |
 | Pro Node renderer | 17.1.0 |
 | Shakapacker | 10.3.2 (Rspack 2 bundler) |
-| React / ReactDOM | 19.2.8 (coordinated with react-on-rails-rsc 19.3.x) |
+| React / ReactDOM | 19.3.0 (react-server-dom-webpack stays 19.2.8 with rsc 19.3.0) |
 | Redux Toolkit | 2.12.0 |
 | TypeScript | 6.0.3 |
 | Node | 20.19+ or 22.12+ (22.12.0 in the container) |
 | Database | SQLite |
 
-> **Why React 19.2.x?** This demo tracks the coordinated React 19.2 +
-> `react-on-rails-rsc` 19.3 line. Keep React, ReactDOM, and
-> `react-on-rails-rsc` on matching upstream Pro/RSC pins when bumping again.
+> **Why React 19.3.0 with `react-server-dom-webpack` 19.2.8?** `react-on-rails-rsc`
+> 19.3.0 depends on `react-server-dom-webpack` `~19.2.8`, so this demo keeps that
+> runtime on 19.2.8 while React and ReactDOM move to 19.3.0. Do not hoist
+> `react-server-dom-webpack` to 19.3.0 until RSC publishes a matching pin.
 
 ## Run it: clone and run
 
