@@ -14,6 +14,8 @@ spec:
       value: "5"
     - name: PORT
       value: "3000"
+    # Pull-request code can read these values in review apps. Keep the review
+    # dictionary disposable and separate from staging and production.
     - name: SECRET_KEY_BASE
       value: "cpln://secret/{{APP_SECRETS}}.SECRET_KEY_BASE"
     - name: RENDERER_URL

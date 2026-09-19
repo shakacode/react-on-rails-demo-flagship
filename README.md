@@ -95,6 +95,13 @@ If you run with `RAILS_ENV=production` and no Pro license token, Pro will warn
 about the missing production license. That is expected for demo/evaluation use.
 Use a production license token before using this architecture in production.
 
+## Control Plane Flow
+
+The repo includes opt-in pull-request review apps, automatic staging deploys
+from `main`, and protected manual promotion from staging to production through
+`cpflow`. See [`.controlplane/README.md`](.controlplane/README.md) for the
+runtime shape, one-time secret bootstrap, GitHub settings, and upgrade process.
+
 ### Success signals (machine-checkable)
 
 The board is in the **streamed HTML**, not injected by the client:
