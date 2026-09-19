@@ -19,6 +19,9 @@ aliases:
     app_workloads:
       - rails
       - node-renderer
+    deploy_order:
+      - [node-renderer]
+      - [rails]
     additional_workloads: []
 
     fix_terminal_size: true
@@ -28,7 +31,7 @@ aliases:
     <<: *common
     allow_org_override_by_env: false
     allow_app_override_by_env: false
-    cpln_org: my-org-production
+    cpln_org: my-org-production # TODO: replace with the real production Control Plane org.
     upstream: react-on-rails-demo-flagship-staging
 
 apps:
