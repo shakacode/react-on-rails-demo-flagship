@@ -138,7 +138,7 @@ end
 refs[setup_match[1]] << "#{promote_path}:promote-to-production setup"
 
 if refs.empty?
-  puts "no upstream cpflow reusable workflow refs found"
+  abort "no upstream cpflow reusable workflow refs found"
 elsif refs.length > 1
   refs.each do |ref, paths|
     puts "#{ref}: #{paths.uniq.sort.join(', ')}"

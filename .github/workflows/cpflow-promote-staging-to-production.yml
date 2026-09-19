@@ -611,6 +611,26 @@ jobs:
 
           cpflow deploy-image "${deploy_args[@]}"
 
+      - name: Verify deployed production image
+        env:
+          EXPECTED_IMAGE: ${{ steps.copy-image.outputs.image }}
+          WORKLOAD_NAMES: ${{ steps.workloads.outputs.names }}
+          PRODUCTION_APP_NAME: ${{ vars.PRODUCTION_APP_NAME }}
+          CPLN_ORG_PRODUCTION: ${{ steps.cpln-orgs.outputs.production }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          while IFS= read -r workload_name; do
+            [[ -n "${workload_name}" ]] || continue
+            workload_json="$(cpln workload get "${workload_name}" --gvc "${PRODUCTION_APP_NAME}" --org "${CPLN_ORG_PRODUCTION}" -o json)"
+            if ! echo "${workload_json}" | jq -e --arg expected "${EXPECTED_IMAGE}" \
+              '[.spec.containers[].image | split("/image/")[-1] | split("@")[0]] | index($expected) != null' >/dev/null; then
+              echo "::error::Workload '${workload_name}' is not using copied production image '${EXPECTED_IMAGE}'." >&2
+              exit 1
+            fi
+          done < <(tr ',' '\n' <<< "${WORKLOAD_NAMES}")
+
       - name: Wait for deployment health
         id: health-check
         uses: ./.cpflow/.github/actions/cpflow-wait-for-health
