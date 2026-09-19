@@ -137,6 +137,20 @@ end
 
 refs[setup_match[1]] << "#{promote_path}:promote-to-production setup"
 
+staging_capture = Array(promote_job["steps"]).find { |step| step["name"] == "Capture deployed staging image" }
+production_verification = Array(promote_job["steps"]).find { |step| step["name"] == "Verify deployed production image" }
+
+unless staging_capture&.dig("run")&.include?("Staging app workloads do not use one promotable image")
+  abort "#{promote_path}: staging image capture must reject mixed app-workload images"
+end
+
+[staging_capture, production_verification].each do |step|
+  run = step&.fetch("run", "").to_s
+  unless run.include?("/org/*/image/*") && run.include?("*.registry.cpln.io/*")
+    abort "#{promote_path}:#{step&.fetch('name', 'missing step')} must normalize Control Plane API and registry image references"
+  end
+end
+
 if refs.empty?
   abort "no upstream cpflow reusable workflow refs found"
 elsif refs.length > 1

@@ -422,8 +422,21 @@ jobs:
         run: |
           set -euo pipefail
 
+          normalize_image_ref() {
+            local image_ref="$1"
+
+            if [[ "${image_ref}" == /org/*/image/* ]]; then
+              image_ref="${image_ref##*/image/}"
+            elif [[ "${image_ref}" == *.registry.cpln.io/* ]]; then
+              image_ref="${image_ref#*.registry.cpln.io/}"
+            fi
+
+            printf '%s\n' "${image_ref}"
+          }
+
           selected_workload="${PRIMARY_WORKLOAD}"
           selected_image=""
+          common_image=""
 
           while IFS= read -r workload_name; do
             [[ -n "${workload_name}" ]] || continue
@@ -436,26 +449,25 @@ jobs:
               exit 1
             fi
 
+            normalized_image="$(normalize_image_ref "${workload_image}")"
+            if [[ -z "${common_image}" ]]; then
+              common_image="${normalized_image}"
+            elif [[ "${normalized_image}" != "${common_image}" ]]; then
+              echo "::error::Staging app workloads do not use one promotable image: '${workload_name}' uses '${normalized_image}', expected '${common_image}'." >&2
+              exit 1
+            fi
+
             if [[ "${workload_name}" == "${selected_workload}" ]]; then
-              selected_image="${workload_image}"
+              selected_image="${normalized_image}"
             fi
           done < <(tr ',' '\n' <<< "${WORKLOAD_NAMES}")
 
-          staging_image_ref="${selected_image}"
-          if [[ -z "${staging_image_ref}" ]]; then
+          if [[ -z "${selected_image}" ]]; then
             echo "::error::Could not determine the deployed staging image for primary workload '${selected_workload}'." >&2
             exit 1
           fi
 
-          if [[ "${staging_image_ref}" == /org/*/image/* ]]; then
-            staging_image="${staging_image_ref##*/image/}"
-          elif [[ "${staging_image_ref}" == *.registry.cpln.io/* ]]; then
-            staging_image="${staging_image_ref#*.registry.cpln.io/}"
-          else
-            staging_image="${staging_image_ref}"
-          fi
-
-          echo "image=${staging_image}" >> "$GITHUB_OUTPUT"
+          echo "image=${selected_image}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5
@@ -621,11 +633,32 @@ jobs:
         run: |
           set -euo pipefail
 
+          normalize_image_ref() {
+            local image_ref="$1"
+
+            if [[ "${image_ref}" == /org/*/image/* ]]; then
+              image_ref="${image_ref##*/image/}"
+            elif [[ "${image_ref}" == *.registry.cpln.io/* ]]; then
+              image_ref="${image_ref#*.registry.cpln.io/}"
+            fi
+
+            printf '%s\n' "${image_ref%%@*}"
+          }
+
           while IFS= read -r workload_name; do
             [[ -n "${workload_name}" ]] || continue
             workload_json="$(cpln workload get "${workload_name}" --gvc "${PRODUCTION_APP_NAME}" --org "${CPLN_ORG_PRODUCTION}" -o json)"
-            if ! echo "${workload_json}" | jq -e --arg expected "${EXPECTED_IMAGE}" \
-              '[.spec.containers[].image | split("/image/")[-1] | split("@")[0]] | index($expected) != null' >/dev/null; then
+            matched_expected_image=false
+
+            while IFS= read -r image_ref; do
+              [[ -n "${image_ref}" ]] || continue
+              if [[ "$(normalize_image_ref "${image_ref}")" == "${EXPECTED_IMAGE}" ]]; then
+                matched_expected_image=true
+                break
+              fi
+            done < <(echo "${workload_json}" | jq -r '.spec.containers[].image // empty')
+
+            if [[ "${matched_expected_image}" != true ]]; then
               echo "::error::Workload '${workload_name}' is not using copied production image '${EXPECTED_IMAGE}'." >&2
               exit 1
             fi
