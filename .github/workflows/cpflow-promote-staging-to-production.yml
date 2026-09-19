@@ -379,7 +379,14 @@ jobs:
             workload_json="$(cpln workload get "${workload_name}" --gvc "${PRODUCTION_APP_NAME}" --org "${CPLN_ORG_PRODUCTION}" -o json)"
             workload_image="$(echo "${workload_json}" | jq -r '.spec.containers[0].image // empty')"
             workload_containers="$(echo "${workload_json}" | jq -c '.spec.containers | map({name, image})')"
-            workload_version="$(echo "${workload_json}" | jq -r '.version')"
+            workload_version="$(echo "${workload_json}" | jq -r '.version // empty')"
+
+            if [[ -z "${workload_version}" ]] ||
+              ! echo "${workload_containers}" | jq -e \
+                'length > 0 and all(.[]; (.name | length) > 0 and (.image | length) > 0)' >/dev/null; then
+              echo "::error::Could not capture complete rollback state for workload '${workload_name}'." >&2
+              exit 1
+            fi
 
             if [[ "${workload_name}" == "${selected_workload}" ]]; then
               selected_image="${workload_image}"
@@ -692,6 +699,7 @@ jobs:
           fi
 
       - name: Wait for rollback readiness
+        id: rollback-readiness
         if: >-
           failure() &&
           (steps.deploy-production.outcome == 'success' || steps.deploy-production.outcome == 'failure') &&
@@ -766,20 +774,28 @@ jobs:
             wait "${pid}" || true
           done
 
+          readiness_failures=0
           for workload_name in "${workloads[@]}"; do
             [[ -n "${workload_name}" ]] || continue
             status_name="${workload_name//\//_}"
             status_file="${status_dir}/${status_name}"
             if [[ ! -f "${status_file}" ]] || [[ "$(<"${status_file}")" != "ready" ]]; then
-              echo "::warning::Workload '${workload_name}' did not report ready after rollback."
+              echo "::error::Workload '${workload_name}' did not report ready after rollback."
+              readiness_failures=$((readiness_failures + 1))
             fi
           done
+
+          if [[ "${readiness_failures}" -gt 0 ]]; then
+            echo "::error::${readiness_failures} workload(s) remained unready after rollback; manual recovery is required." >&2
+            exit 1
+          fi
 
       - name: Promotion summary
         if: always()
         env:
           HEALTHY: ${{ steps.health-check.outputs.healthy }}
           ROLLBACK_OUTCOME: ${{ steps.rollback.outcome }}
+          ROLLBACK_READINESS_OUTCOME: ${{ steps.rollback-readiness.outcome }}
           PREVIOUS_IMAGE: ${{ steps.capture-current.outputs.current_image }}
           PREVIOUS_VERSION: ${{ steps.capture-current.outputs.current_version }}
           COPIED_IMAGE: ${{ steps.copy-image.outputs.image }}
@@ -791,7 +807,7 @@ jobs:
             if [[ "${HEALTHY}" == "true" ]]; then
               echo "✅ Status: deployment successful"
               deployed_image="${COPIED_IMAGE}"
-            elif [[ "${ROLLBACK_OUTCOME}" == "failure" ]]; then
+            elif [[ "${ROLLBACK_OUTCOME}" == "failure" || "${ROLLBACK_READINESS_OUTCOME}" == "failure" ]]; then
               echo "❌ Status: deployment failed and rollback was incomplete; manual recovery is required"
               deployed_image="unknown (rollback failed)"
             else
