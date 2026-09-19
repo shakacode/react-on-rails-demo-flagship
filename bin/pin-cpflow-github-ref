@@ -6,19 +6,17 @@ require "pathname"
 USAGE = <<~USAGE
   Usage: bin/pin-cpflow-github-ref [--allow-moving-ref] <control-plane-flow-ref>
 
-  Use a release tag for normal operation, e.g. v5.0.0.
-  Use a full 40-character commit SHA for temporary unreleased upstream testing.
+  Use a full 40-character commit SHA for normal operation.
   This updates generated reusable-workflow `uses:` refs plus the production
   workflow's pinned control-plane-flow checkout and setup validation ref.
   Regenerate from the cpflow gem when templates changed.
   Update release-specific references in .controlplane/README.md and
   .github/cpflow-help.md separately after repinning.
-  Use --allow-moving-ref only for short-lived local branch/ref experiments.
+  Use --allow-moving-ref only for short-lived release-tag or branch/ref experiments.
 USAGE
 
 ALLOWED_OPTIONS = ["--allow-moving-ref"].freeze
 FULL_COMMIT_SHA = /\A[0-9a-f]{40}\z/i
-RELEASE_TAG = /\Av\d+\.\d+\.\d+(?:[-.][0-9A-Za-z][0-9A-Za-z.-]*)?\z/
 PRODUCTION_WORKFLOW_REF = "shakacode/control-plane-flow/.github/workflows/" \
                           "cpflow-promote-staging-to-production.yml"
 CPFLOW_CHECKOUT_REF_PATTERN = %r{
@@ -52,9 +50,9 @@ unless ref.match?(%r{\A[0-9A-Za-z._/-]+\z})
   exit 1
 end
 
-unless ref.match?(FULL_COMMIT_SHA) || ref.match?(RELEASE_TAG) || allow_moving_ref
-  warn "Ref must be a full 40-character commit SHA or a v-prefixed release tag: #{ref.inspect}"
-  warn "Use --allow-moving-ref only for a short-lived branch/ref experiment."
+unless ref.match?(FULL_COMMIT_SHA) || allow_moving_ref
+  warn "Ref must be a full 40-character commit SHA: #{ref.inspect}"
+  warn "Use --allow-moving-ref only for a short-lived release-tag or branch/ref experiment."
   exit 1
 end
 

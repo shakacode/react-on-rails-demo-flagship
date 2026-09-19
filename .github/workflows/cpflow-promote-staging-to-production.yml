@@ -30,7 +30,7 @@ env:
   # via the HEALTH_CHECK_ACCEPTED_STATUSES repo variable to tighten this for apps that
   # expose a dedicated health endpoint (e.g. "200" for a plain /health, or "200 401 403"
   # for apps that auth-gate / without redirecting).
-  HEALTH_CHECK_ACCEPTED_STATUSES: ${{ vars.HEALTH_CHECK_ACCEPTED_STATUSES || '200 301 302' }}
+  HEALTH_CHECK_ACCEPTED_STATUSES: ${{ vars.HEALTH_CHECK_ACCEPTED_STATUSES || '200' }}
   COPY_IMAGE_RETRIES: ${{ vars.COPY_IMAGE_RETRIES || '3' }}
   COPY_IMAGE_RETRY_INTERVAL: ${{ vars.COPY_IMAGE_RETRY_INTERVAL || '20' }}
   ROLLBACK_READINESS_RETRIES: ${{ vars.ROLLBACK_READINESS_RETRIES || '24' }}
@@ -625,6 +625,7 @@ jobs:
           accepted_statuses: ${{ env.HEALTH_CHECK_ACCEPTED_STATUSES }}
 
       - name: Roll back on failure
+        id: rollback
         if: >-
           failure() &&
           (steps.deploy-production.outcome == 'success' || steps.deploy-production.outcome == 'failure') &&
@@ -778,6 +779,7 @@ jobs:
         if: always()
         env:
           HEALTHY: ${{ steps.health-check.outputs.healthy }}
+          ROLLBACK_OUTCOME: ${{ steps.rollback.outcome }}
           PREVIOUS_IMAGE: ${{ steps.capture-current.outputs.current_image }}
           PREVIOUS_VERSION: ${{ steps.capture-current.outputs.current_version }}
           COPIED_IMAGE: ${{ steps.copy-image.outputs.image }}
@@ -789,6 +791,9 @@ jobs:
             if [[ "${HEALTHY}" == "true" ]]; then
               echo "✅ Status: deployment successful"
               deployed_image="${COPIED_IMAGE}"
+            elif [[ "${ROLLBACK_OUTCOME}" == "failure" ]]; then
+              echo "❌ Status: deployment failed and rollback was incomplete; manual recovery is required"
+              deployed_image="unknown (rollback failed)"
             else
               echo "❌ Status: deployment failed"
               deployed_image="${PREVIOUS_IMAGE}"
