@@ -29,6 +29,7 @@ jobs:
     needs: deploy-staging
     uses: ./.github/workflows/verify-hosted-app.yml
     with:
+      deployment_succeeded: ${{ needs.deploy-staging.result == 'success' }}
       app_name: react-on-rails-demo-flagship-staging
       revision: ${{ github.sha }}
     secrets:

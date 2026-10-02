@@ -124,7 +124,7 @@ publish them on a maintainer branch before hosted validation; do not expose the
 staging token to an untrusted PR.
 The upstream wrapper deliberately skips initial creation on PR events; missing
 apps fail the hosted verification rather than counting as a tested deployment.
-Delete the disposable app with `cpflow delete-app -a APP_NAME --org ORG` after
+Delete the disposable app with `cpflow delete -a APP_NAME --org ORG` after
 the PR closes. Preserve the review-only dictionary while other review apps use it.
 
 For an existing staging GVC, refresh only the app template to repair renderer
