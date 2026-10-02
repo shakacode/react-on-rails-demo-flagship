@@ -102,7 +102,9 @@ Each PR must pass `hosted-review / Hosted review app`: both workloads must use
 images ending in the full PR SHA, their latest rollout must be ready, and
 `/__deployment` must report that SHA over the public URL. The existing browser
 suite then checks streamed HTML, hydration, persisted mutations, validation, and
-CSRF rejection. Its trace and deployment metadata are uploaded as Actions artifacts.
+CSRF rejection. Screenshots, failure traces, and deployment metadata are uploaded
+as Actions artifacts. The automated gate applies to every PR; upgrades additionally
+require a manual browser visit and PR evidence as described in `AGENTS.md`.
 The staging workflow runs the same verification after deployment; updating an
 image alone no longer completes the staging workflow successfully.
 
@@ -117,6 +119,9 @@ cpflow setup-app -a react-on-rails-demo-flagship-review-PR_NUMBER \
 ```
 
 Then rerun the PR's Review app workflow. Subsequent pushes deploy automatically.
+Fork and Dependabot PRs do not receive Actions secrets. Review those changes and
+publish them on a maintainer branch before hosted validation; do not expose the
+staging token to an untrusted PR.
 The upstream wrapper deliberately skips initial creation on PR events; missing
 apps fail the hosted verification rather than counting as a tested deployment.
 Delete the disposable app with `cpflow delete-app -a APP_NAME --org ORG` after
@@ -126,10 +131,14 @@ For an existing staging GVC, refresh only the app template to repair renderer
 environment settings without changing its workload type or image:
 
 ```bash
-cpflow apply-template app -a react-on-rails-demo-flagship-staging \
+cpflow apply-template app node-renderer -a react-on-rails-demo-flagship-staging \
   --org shakacode-open-source-examples-staging --preserve-existing-runtime --yes
 ```
 
 Confirm both workloads restart with the new environment. The existing Rails
 workload is serverless; changing it to the standard template is a separate
 infrastructure migration. Reapplying all workload templates fails on that type change.
+
+The check executes repository code with staging credentials, like the existing
+deployment workflow. It is a runtime qualification gate, not a security boundary:
+review changes to workflows and validation scripts before trusting their results.

@@ -1,4 +1,4 @@
-# Staging-only Control Plane config for the flagship React on Rails demo.
+# Control Plane staging and review apps for the flagship React on Rails demo.
 #
 # This demo intentionally boots with deterministic seed data from the container
 # entrypoint. Review apps use a separate, disposable secret dictionary.

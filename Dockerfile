@@ -83,10 +83,6 @@ RUN SECRET_KEY_BASE_DUMMY=1 RENDERER_PASSWORD=build_time_renderer_password ./bin
 # Final stage for app image
 FROM base
 
-# CPFlow supplies the exact source revision as a Docker build argument.
-ARG GIT_COMMIT
-ENV GIT_COMMIT=${GIT_COMMIT}
-
 # Run and own only the runtime files as a non-root user for security
 RUN groupadd --system --gid 1000 rails && \
     useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash
@@ -99,6 +95,10 @@ RUN mkdir -p /rails/.node-renderer-bundles && \
     chown -R rails:rails /rails/.node-renderer-bundles
 
 USER 1000:1000
+
+# CPFlow supplies the exact source revision as a Docker build argument.
+ARG GIT_COMMIT
+ENV GIT_COMMIT=${GIT_COMMIT}
 
 # Entrypoint prepares and seeds the database.
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
