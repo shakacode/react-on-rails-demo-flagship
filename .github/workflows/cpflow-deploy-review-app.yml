@@ -3,12 +3,6 @@ name: Review app
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-  workflow_dispatch:
-    inputs:
-      pr_number:
-        description: Pull request number
-        required: true
-        type: string
 
 permissions:
   contents: read
@@ -24,7 +18,7 @@ jobs:
       DOCKER_BUILD_SSH_KEY: ${{ secrets.DOCKER_BUILD_SSH_KEY }}
   hosted-review:
     needs: deploy-review
-    if: github.event_name == 'pull_request'
+    if: always() && github.event_name == 'pull_request'
     uses: ./.github/workflows/verify-hosted-app.yml
     with:
       app_name: react-on-rails-demo-flagship-review-${{ github.event.pull_request.number }}
