@@ -71,7 +71,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: hosted-${{ inputs.app_name }}-${{ inputs.revision }}
+          name: hosted-${{ inputs.app_name }}-${{ inputs.revision }}-${{ github.run_attempt }}
           path: |
             tmp/hosted-deployment.json
             tmp/playwright-test-results
