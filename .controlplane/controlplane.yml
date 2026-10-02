@@ -1,8 +1,8 @@
 # Staging-only Control Plane config for the flagship React on Rails demo.
 #
 # This demo intentionally boots with deterministic seed data from the container
-# entrypoint, so staging does not provision review apps, production promotion,
-# external databases, or persistent SQLite volumes.
+# entrypoint. Review apps use a separate, disposable secret dictionary.
+# Neither environment provisions production, external databases, or SQLite volumes.
 
 allow_org_override_by_env: true
 allow_app_override_by_env: true
@@ -30,3 +30,7 @@ apps:
   react-on-rails-demo-flagship-staging:
     <<: *common
     secrets_name: react-on-rails-demo-flagship-staging-secrets
+
+  react-on-rails-demo-flagship-review:
+    <<: *common
+    match_if_app_name_starts_with: true

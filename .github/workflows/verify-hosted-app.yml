@@ -1,0 +1,64 @@
+name: Verify hosted app
+
+on:
+  workflow_call:
+    inputs:
+      app_name:
+        required: true
+        type: string
+      revision:
+        required: true
+        type: string
+    secrets:
+      CPLN_TOKEN_STAGING:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Hosted review app
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ inputs.revision }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.12.0'
+          cache: npm
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4.6'
+      - name: Install browser and Control Plane tooling
+        run: npm ci && npx playwright install --with-deps chromium && npm install --global @controlplane/cli@3.14.1
+      - name: Wait for the exact hosted revision
+        env:
+          APP_NAME: ${{ inputs.app_name }}
+          EXPECTED_REVISION: ${{ inputs.revision }}
+          CPLN_ORG_STAGING: ${{ vars.CPLN_ORG_STAGING }}
+          CPLN_TOKEN: ${{ secrets.CPLN_TOKEN_STAGING }}
+        run: bin/verify-hosted-deployment "$APP_NAME" "$EXPECTED_REVISION"
+      - name: Exercise hosted streaming and mutations
+        env:
+          PLAYWRIGHT_ALLOW_REMOTE_MUTATIONS: 'true'
+          EXPECTED_REVISION: ${{ inputs.revision }}
+        run: npm run test:browser
+      - name: Confirm the revision after browser checks
+        env:
+          APP_NAME: ${{ inputs.app_name }}
+          EXPECTED_REVISION: ${{ inputs.revision }}
+          CPLN_ORG_STAGING: ${{ vars.CPLN_ORG_STAGING }}
+          CPLN_TOKEN: ${{ secrets.CPLN_TOKEN_STAGING }}
+        run: bin/verify-hosted-deployment "$APP_NAME" "$EXPECTED_REVISION"
+      - name: Record hosted evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hosted-${{ inputs.app_name }}-${{ inputs.revision }}
+          path: |
+            tmp/hosted-deployment.json
+            tmp/playwright-test-results

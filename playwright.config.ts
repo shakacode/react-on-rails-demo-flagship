@@ -84,6 +84,7 @@ export default defineConfig({
     baseURL,
     browserName: 'chromium',
     trace: 'retain-on-failure',
+    screenshot: 'on',
   },
   webServer: hasProvidedBaseURL
     ? undefined

@@ -2,6 +2,18 @@ import { expect, test, type Page, type Request } from '@playwright/test';
 
 const SEEDED_TASK_TITLE = 'Break something on purpose';
 
+test('identifies the deployed revision without caching', async ({ request }) => {
+  const response = await request.get('/__deployment');
+  expect(response.ok()).toBe(true);
+  expect(response.headers()['cache-control']).toContain('no-store');
+  const metadata = await response.json();
+  expect(Object.keys(metadata).sort()).toEqual(['react_on_rails_pro', 'revision']);
+  expect(metadata.react_on_rails_pro).toBeTruthy();
+  if (process.env.EXPECTED_REVISION) {
+    expect(metadata.revision).toBe(process.env.EXPECTED_REVISION);
+  }
+});
+
 const isTaskPatchRequest = (request: Request) =>
   request.method() === 'PATCH' && /\/api\/tasks\/\d+$/.test(new URL(request.url()).pathname);
 
