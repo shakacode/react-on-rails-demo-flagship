@@ -6,19 +6,17 @@ This repository publishes one staging app:
 react-on-rails-demo-flagship-staging
 ```
 
-The deployment intentionally stays staging-only. It does not create review apps,
-production promotion, external databases, or persistent SQLite volumes. The
+The deployment stays in the staging organization. It also supports disposable PR
+review apps, without production promotion, external databases, or SQLite volumes. The
 container entrypoint runs `db:prepare db:seed` whenever the Rails server starts,
 so staging returns to the deterministic six-task demo state after each workload
 restart or deploy.
 
-The Rails and Node renderer workloads stay `type: standard` with the explicit
-autoscaling metric disabled and `capacityAI: true`. That matches the cost
-posture for public demos and starter staging apps: Control Plane can right-size
-idle capacity without a standard-to-serverless delete/recreate migration. This
-is not full scale-to-zero; steady RAM usage can still drive cost. Revisit
-serverless only if true idle scale-to-zero becomes a deliberate staging
-requirement.
+New apps use `type: standard` with the autoscaling metric disabled and
+`capacityAI: true`. The existing staging Rails workload is serverless; preserve
+that type when refreshing its configuration. Changing its type requires a
+separate migration. The Node renderer port uses `http2`, matching the renderer's
+HTTP/2 server; `http` causes upstream protocol errors through the service mesh.
 
 The Rails workload keeps inbound traffic public (`0.0.0.0/0`) because this is a
 public demo. Runtime egress is denied by default (`outboundAllowCIDR: []`)
@@ -97,3 +95,53 @@ with the existing root `Dockerfile` through `.controlplane/controlplane.yml`'s
 If this app is ever promoted from a public demo to a user-facing availability
 target, revisit the disabled autoscaling metric and Capacity AI posture before
 enabling production promotion or uptime monitoring.
+
+## Hosted validation and review apps
+
+Each PR must pass `hosted-review / Hosted review app`: both workloads must use
+images ending in the full PR SHA, their latest rollout must be ready, and
+`/__deployment` must report that SHA over the public URL. The existing browser
+suite then checks streamed HTML, hydration, persisted mutations, validation, and
+CSRF rejection. Screenshots, failure traces, and deployment metadata are uploaded
+as Actions artifacts. The automated gate applies to every PR; upgrades additionally
+require a manual browser visit and PR evidence as described in `AGENTS.md`.
+The staging workflow runs the same verification after deployment; updating an
+image alone no longer completes the staging workflow successfully.
+
+Review apps use the `react-on-rails-demo-flagship-review` prefix and a separate
+review-only secret dictionary. Populate its `SECRET_KEY_BASE` and
+`RENDERER_PASSWORD` with generated values before the first review app. Keep the
+staging secret dictionary separate. Bootstrap a PR app with:
+
+```bash
+cpflow setup-app -a react-on-rails-demo-flagship-review-PR_NUMBER \
+  --org shakacode-open-source-examples-staging --skip-post-creation-hook
+```
+
+Then rerun the PR's Review app workflow. Subsequent pushes deploy automatically.
+Fork and Dependabot PRs do not receive Actions secrets. Review those changes and
+publish them on a maintainer branch before hosted validation; do not expose the
+staging token to an untrusted PR.
+The upstream wrapper deliberately skips initial creation on PR events; missing
+apps fail the hosted verification rather than counting as a tested deployment.
+Delete the disposable app with `cpflow delete -a APP_NAME --org ORG` after
+the PR closes. Preserve the review-only dictionary while other review apps use it.
+
+For an existing staging GVC, refresh only the app template to repair renderer
+environment settings and the renderer template to repair its HTTP/2 port.
+Runtime preservation requires CPFlow `6.0.0.rc.0`; the reusable deployment
+workflows still use `5.1.1`, which does not support this refresh flag:
+
+```bash
+gem install cpflow -v 6.0.0.rc.0
+cpflow _6.0.0.rc.0_ apply-template app node-renderer -a react-on-rails-demo-flagship-staging \
+  --org shakacode-open-source-examples-staging --preserve-existing-runtime --yes
+```
+
+Confirm both workloads restart with the new environment. The existing Rails
+workload is serverless; changing it to the standard template is a separate
+infrastructure migration. Reapplying all workload templates fails on that type change.
+
+The check executes repository code with staging credentials, like the existing
+deployment workflow. It is a runtime qualification gate, not a security boundary:
+review changes to workflows and validation scripts before trusting their results.

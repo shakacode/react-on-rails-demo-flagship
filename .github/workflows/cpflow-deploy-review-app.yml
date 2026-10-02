@@ -1,0 +1,32 @@
+name: Review app
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  deployments: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: flagship-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-review:
+    uses: shakacode/control-plane-flow/.github/workflows/cpflow-deploy-review-app.yml@610dd36cb9abf14a064003c8d388b8c77c4137d7 # v5.1.1
+    secrets:
+      CPLN_TOKEN_STAGING: ${{ secrets.CPLN_TOKEN_STAGING }}
+      DOCKER_BUILD_SSH_KEY: ${{ secrets.DOCKER_BUILD_SSH_KEY }}
+  hosted-review:
+    needs: deploy-review
+    if: always() && github.event_name == 'pull_request'
+    uses: ./.github/workflows/verify-hosted-app.yml
+    with:
+      deployment_succeeded: ${{ needs.deploy-review.result == 'success' }}
+      app_name: react-on-rails-demo-flagship-review-${{ github.event.pull_request.number }}
+      revision: ${{ github.event.pull_request.head.sha }}
+    secrets:
+      CPLN_TOKEN_STAGING: ${{ secrets.CPLN_TOKEN_STAGING }}

@@ -19,4 +19,5 @@ merge:
   preference: auto
   required_checks:
     - smoke / Demo fleet smoke
+    - hosted-review / Hosted review app
 repo_prefix: RORF

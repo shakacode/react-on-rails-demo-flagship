@@ -96,6 +96,10 @@ RUN mkdir -p /rails/.node-renderer-bundles && \
 
 USER 1000:1000
 
+# CPFlow supplies the exact source revision as a Docker build argument.
+ARG GIT_COMMIT
+ENV GIT_COMMIT=${GIT_COMMIT}
+
 # Entrypoint prepares and seeds the database.
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 

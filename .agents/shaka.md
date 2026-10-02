@@ -39,8 +39,9 @@ leaves this file alone; it never overwrites one you have edited.
 ## Merge gates
 
 Shaka defaults to Auto merge after validation and review. When GitHub declares no
-required checks, Shaka requires `smoke / Demo fleet smoke` to appear and pass on
-the current PR head. Meaningful changes also require a completed `claude-review`
+required checks, Shaka requires `smoke / Demo fleet smoke` and
+`hosted-review / Hosted review app` to appear and pass on the current PR head.
+Meaningful changes also require a completed `claude-review`
 report, plus local adversarial review through the installed workflow. Local
 review tries Claude, then Codex; both use medium effort.
 
