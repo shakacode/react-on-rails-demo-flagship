@@ -25,19 +25,19 @@ JSON mutations, one app, one deploy.
 | --- | --- |
 | Ruby | 3.4.6 |
 | Rails | 8.1.3 |
-| react_on_rails_pro (gem + npm) | 17.2.0.rc.0 / 17.2.0-rc.0 (release candidate) |
-| react-on-rails-rsc | 19.3.0 |
-| Pro Node renderer | 17.2.0-rc.0 (release candidate) |
+| react_on_rails_pro (gem + npm) | 17.2.0.rc.1 / 17.2.0-rc.1 (release candidate) |
+| react-on-rails-rsc | 19.3.1-rc.1 |
+| Pro Node renderer | 17.2.0-rc.1 (release candidate) |
 | Shakapacker | 10.3.2 (Rspack 2 bundler) |
-| React / ReactDOM | 19.2.8 (coordinated with react-on-rails-rsc 19.3.x) |
+| React / ReactDOM | 19.3.0 (coordinated with Flight 19.3.0 and RSC 19.3.1-rc.1) |
 | Redux Toolkit | 2.12.0 |
 | TypeScript | 6.0.3 |
 | Node | 20.19+ or 22.12+ (22.12.0 in the container) |
 | Database | SQLite |
 
-> **Why React 19.2.x?** This demo tracks the coordinated React 19.2 +
-> `react-on-rails-rsc` 19.3 line. Keep React, ReactDOM, and
-> `react-on-rails-rsc` on matching upstream Pro/RSC pins when bumping again.
+> **Coordinated React 19.3 stack:** This demo uses React, ReactDOM, and
+> `react-server-dom-webpack` 19.3.0 with `react-on-rails-rsc` 19.3.1-rc.1.
+> Keep all four pins compatible when upgrading the demo.
 
 ## Run it: clone and run
 
