@@ -1,5 +1,8 @@
 name: Review app
 
+# The cpflow 6 reusable workflow matches each run to this exact title.
+run-name: "Deploy Review App - PR #${{ github.event.pull_request.number || github.event.issue.number || github.event.inputs.pr_number }}"
+
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
