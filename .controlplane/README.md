@@ -111,14 +111,16 @@ image alone no longer completes the staging workflow successfully.
 Review apps use the `react-on-rails-demo-flagship-review` prefix and a separate
 review-only secret dictionary. Populate its `SECRET_KEY_BASE` and
 `RENDERER_PASSWORD` with generated values before the first review app. Keep the
-staging secret dictionary separate. Bootstrap a PR app with:
+staging secret dictionary separate. Bootstrap a PR app by running the Review app
+workflow manually for that PR; it creates the app, builds the PR head, and deploys it:
 
 ```bash
-cpflow setup-app -a react-on-rails-demo-flagship-review-PR_NUMBER \
-  --org shakacode-open-source-examples-staging --skip-post-creation-hook
+gh workflow run cpflow-deploy-review-app.yml -f pr_number=PR_NUMBER
 ```
 
-Then rerun the PR's Review app workflow. Subsequent pushes deploy automatically.
+Then rerun the PR's Review app workflow so hosted validation runs. Subsequent
+pushes deploy automatically. Do not pre-create the app with `cpflow setup-app`:
+cpflow 6 cannot refresh the templates of an app that has never had an image deployed.
 Fork and Dependabot PRs do not receive Actions secrets. Review those changes and
 publish them on a maintainer branch before hosted validation; do not expose the
 staging token to an untrusted PR.

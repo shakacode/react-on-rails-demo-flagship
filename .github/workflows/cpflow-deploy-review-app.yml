@@ -6,6 +6,17 @@ run-name: "Deploy Review App - PR #${{ github.event.pull_request.number || githu
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+  # cpflow 6 creates a missing review app only from a manual run, never from a PR event.
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to deploy
+        required: true
+        type: number
+      reconcile_intent_run_id:
+        description: Authenticated internal handoff; manual values are rejected
+        required: false
+        type: string
 
 permissions:
   actions: write
@@ -15,7 +26,7 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: flagship-review-${{ github.event.pull_request.number }}
+  group: flagship-review-${{ github.event.pull_request.number || github.event.inputs.pr_number }}
   cancel-in-progress: false
 
 jobs:
