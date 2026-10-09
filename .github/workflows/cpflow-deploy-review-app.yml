@@ -1,22 +1,37 @@
 name: Review app
 
+# The cpflow 6 reusable workflow matches each run to this exact title.
+run-name: "Deploy Review App - PR #${{ github.event.pull_request.number || github.event.issue.number || github.event.inputs.pr_number }}"
+
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+  # cpflow 6 creates a missing review app only from a manual run, never from a PR event.
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to deploy
+        required: true
+        type: number
+      reconcile_intent_run_id:
+        description: Authenticated internal handoff; manual values are rejected
+        required: false
+        type: string
 
 permissions:
+  actions: write
   contents: read
   deployments: write
   issues: write
   pull-requests: write
 
 concurrency:
-  group: flagship-review-${{ github.event.pull_request.number }}
+  group: flagship-review-${{ github.event.pull_request.number || github.event.inputs.pr_number }}
   cancel-in-progress: false
 
 jobs:
   deploy-review:
-    uses: shakacode/control-plane-flow/.github/workflows/cpflow-deploy-review-app.yml@610dd36cb9abf14a064003c8d388b8c77c4137d7 # v5.1.1
+    uses: shakacode/control-plane-flow/.github/workflows/cpflow-deploy-review-app.yml@68b5d83152c02a70eb98ffdc7fd2072e28265fef # v6.0.0
     secrets:
       CPLN_TOKEN_STAGING: ${{ secrets.CPLN_TOKEN_STAGING }}
       DOCKER_BUILD_SSH_KEY: ${{ secrets.DOCKER_BUILD_SSH_KEY }}
