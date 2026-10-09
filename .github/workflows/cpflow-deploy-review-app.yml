@@ -5,6 +5,7 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
+  actions: write
   contents: read
   deployments: write
   issues: write
@@ -16,7 +17,7 @@ concurrency:
 
 jobs:
   deploy-review:
-    uses: shakacode/control-plane-flow/.github/workflows/cpflow-deploy-review-app.yml@610dd36cb9abf14a064003c8d388b8c77c4137d7 # v5.1.1
+    uses: shakacode/control-plane-flow/.github/workflows/cpflow-deploy-review-app.yml@68b5d83152c02a70eb98ffdc7fd2072e28265fef # v6.0.0
     secrets:
       CPLN_TOKEN_STAGING: ${{ secrets.CPLN_TOKEN_STAGING }}
       DOCKER_BUILD_SSH_KEY: ${{ secrets.DOCKER_BUILD_SSH_KEY }}

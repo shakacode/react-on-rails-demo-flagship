@@ -29,7 +29,7 @@ allows same-GVC internal traffic so Rails can reach
 
 ```bash
 npm i -g @controlplane/cli
-gem install cpflow -v 5.1.1
+gem install cpflow -v 6.0.0
 cpln login
 ```
 
@@ -128,13 +128,11 @@ Delete the disposable app with `cpflow delete -a APP_NAME --org ORG` after
 the PR closes. Preserve the review-only dictionary while other review apps use it.
 
 For an existing staging GVC, refresh only the app template to repair renderer
-environment settings and the renderer template to repair its HTTP/2 port.
-Runtime preservation requires CPFlow `6.0.0.rc.0`; the reusable deployment
-workflows still use `5.1.1`, which does not support this refresh flag:
+environment settings and the renderer template to repair its HTTP/2 port,
+preserving the deployed images:
 
 ```bash
-gem install cpflow -v 6.0.0.rc.0
-cpflow _6.0.0.rc.0_ apply-template app node-renderer -a react-on-rails-demo-flagship-staging \
+cpflow apply-template app node-renderer -a react-on-rails-demo-flagship-staging \
   --org shakacode-open-source-examples-staging --preserve-existing-runtime --yes
 ```
 
