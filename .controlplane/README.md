@@ -29,7 +29,7 @@ allows same-GVC internal traffic so Rails can reach
 
 ```bash
 npm i -g @controlplane/cli
-gem install cpflow -v 6.0.0
+gem install cpflow -v 6.0.1
 cpln login
 ```
 
