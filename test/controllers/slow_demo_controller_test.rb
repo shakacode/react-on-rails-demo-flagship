@@ -3,12 +3,14 @@ require "test_helper"
 class SlowDemoControllerTest < ActionController::TestCase
   tests SlowDemoController
 
-  test "production rejects the slow demo before streaming" do
+  test "hosted environments reject the slow demo before streaming" do
     original_env = Rails.env
-    Rails.env = "production"
     @controller.define_singleton_method(:stream_view_containing_react_components) { |**| raise "production must not start streaming" }
-    get :index, params: { delay_ms: "10000" }
-    assert_response :not_found
+    %w[production staging review].each do |environment|
+      Rails.env = environment
+      get :index, params: { delay_ms: "10000" }
+      assert_response :not_found
+    end
   ensure
     Rails.env = original_env
   end

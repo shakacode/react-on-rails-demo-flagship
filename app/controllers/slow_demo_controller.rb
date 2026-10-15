@@ -18,7 +18,7 @@ class SlowDemoController < ApplicationController
 
   def index
     # The intentional blocking delay is only for local streaming experiments.
-    return head :not_found if Rails.env.production?
+    return head :not_found unless Rails.env.development? || Rails.env.test?
 
     delay = Integer(params[:delay_ms], exception: false) || DEFAULT_DELAY_MS
     @delay_ms = delay.clamp(0, MAX_DELAY_MS)
