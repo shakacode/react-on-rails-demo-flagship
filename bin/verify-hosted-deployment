@@ -1,0 +1,56 @@
+#!/usr/bin/env ruby
+# Wait for both workloads and the public application to serve the expected image.
+require "json"
+require "net/http"
+require "open3"
+require "uri"
+
+app, revision = ARGV
+abort "Usage: bin/verify-hosted-deployment APP FULL_SHA" unless
+  app&.match?(/\A[a-z0-9-]+\z/) && revision&.match?(/\A[0-9a-f]{40}\z/)
+org = ENV.fetch("CPLN_ORG_STAGING")
+deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 600
+last_error = "Rollout has not been checked"
+
+def cpln_json(*args)
+  output, status = Open3.capture2("cpln", *args, "-o", "json")
+  raise "Control Plane read failed" unless status.success?
+  JSON.parse(output)
+end
+
+loop do
+  begin
+    workloads = %w[rails node-renderer].map do |name|
+      workload = cpln_json("workload", "get", name, "--gvc", app, "--org", org)
+      images = workload.fetch("spec").fetch("containers").map { |c| c.fetch("image") }
+      unless images.all? { |image| image.end_with?("_#{revision}") }
+        raise "#{name}: configured image does not match #{revision}"
+      end
+      status = workload.fetch("status")
+      raise "#{name}: latest rollout is unready" unless status["readyLatest"] == true
+      workload
+    end
+    url = URI(workloads.first.fetch("status").fetch("endpoint"))
+    raise "Expected HTTPS Control Plane endpoint" unless
+      url.scheme == "https" && url.host.end_with?(".cpln.app")
+    http = Net::HTTP.new(url.host, url.port)
+    http.use_ssl = true
+    http.open_timeout = 10
+    http.read_timeout = 15
+    response = http.get("/__deployment")
+    raise "Deployment endpoint returned #{response.code}" unless response.code == "200"
+    metadata = JSON.parse(response.body)
+    raise "Public endpoint serves a different revision" unless metadata["revision"] == revision
+    Dir.mkdir("tmp") unless Dir.exist?("tmp")
+    File.write("tmp/hosted-deployment.json", JSON.pretty_generate(metadata.merge("url" => url.to_s)))
+    File.open(ENV.fetch("GITHUB_ENV", "/dev/null"), "a") { |f| f.puts "PLAYWRIGHT_BASE_URL=#{url}" }
+    puts "Healthy hosted revision #{revision} at #{url}"
+    break
+  rescue StandardError => error
+    last_error = error.message
+    abort "Hosted deployment failed: #{last_error}" if
+      Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
+    warn "Waiting: #{last_error}"
+    sleep 10
+  end
+end

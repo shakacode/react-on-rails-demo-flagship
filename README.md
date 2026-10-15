@@ -1,16 +1,19 @@
 # React on Rails Pro Flagship Demo
 
-[![RSC Smoke](https://github.com/shakacode/react-on-rails-demo-flagship/actions/workflows/smoke.yml/badge.svg)](https://github.com/shakacode/react-on-rails-demo-flagship/actions/workflows/smoke.yml)
+[![RSC Smoke](https://github.com/shakacode/react-on-rails-demo-flagship/actions/workflows/demo-fleet-smoke.yml/badge.svg)](https://github.com/shakacode/react-on-rails-demo-flagship/actions/workflows/demo-fleet-smoke.yml)
 
 The clone-and-run flagship demo for **[React on Rails Pro](https://reactonrails.com/pro)**:
 React Server Components, streaming SSR, the Pro Node renderer, React 19,
 Redux Toolkit, Shakapacker, Rspack, TypeScript, and a real Rails CRUD app.
 
-This repo intentionally shows the Pro/RSC happy path as the default. React on
-Rails Pro has a friendly license: it is free for evaluation and non-production
-use, and free or low-cost production licenses are available for startups and
-small companies. You can clone this demo, run it locally, and inspect the Pro
-RSC architecture before deciding what license you need for production.
+This repo intentionally shows the React on Rails Pro/RSC happy path as the
+default. The Pro packages are commercially licensed. Starting with the stable
+`react-on-rails-rsc` 19.2.1 release, RSC is licensed on the same commercial terms.
+Evaluation, education, demos, tutorials, workshops, and personal or hobby use
+remain royalty-free under those terms. Production Use requires an appropriate
+paid or Complimentary OSS license. You can clone this demo, run it locally, and
+inspect the Pro/RSC architecture before deciding what license you need for
+production.
 
 This is the thing Next.js structurally cannot show you: a React Server Component
 streamed through a real Rails view, server-owned data from ActiveRecord, Rails
@@ -22,24 +25,26 @@ JSON mutations, one app, one deploy.
 | --- | --- |
 | Ruby | 3.4.6 |
 | Rails | 8.1.3 |
-| react_on_rails_pro (gem + npm) | 17.0.0-rc.7 |
-| react-on-rails-rsc | 19.2.1-rc.0 |
-| Pro Node renderer | 17.0.0-rc.7 |
-| Shakapacker | 10.3.0 (Rspack 2 bundler) |
-| React / ReactDOM | 19.2.7 (coordinated with react-on-rails-rsc 19.2.x) |
+| react_on_rails_pro (gem + npm) | 17.2.0 |
+| react-on-rails-rsc | 19.3.1 |
+| Pro Node renderer | 17.2.0 |
+| Shakapacker | 10.3.2 (Rspack 2 bundler) |
+| React / ReactDOM | 19.3.0 (coordinated with Flight 19.3.0 and RSC 19.3.1) |
 | Redux Toolkit | 2.12.0 |
 | TypeScript | 6.0.3 |
 | Node | 20.19+ or 22.12+ (22.12.0 in the container) |
 | Database | SQLite |
 
-> **Why React 19.2.x?** This demo tracks the coordinated React 19.2 +
-> `react-on-rails-rsc` 19.2 line. Keep React, ReactDOM, and
-> `react-on-rails-rsc` on matching upstream Pro/RSC pins when bumping again.
+> **Coordinated React 19.3 stack:** This demo uses React, ReactDOM, and
+> `react-server-dom-webpack` 19.3.0 with `react-on-rails-rsc` 19.3.1.
+> Keep all four pins compatible when upgrading the demo.
 
 ## Run it: clone and run
 
 Prerequisites: Ruby 3.4.6, Node 20.19+ or 22.12+, npm, SQLite (all
 standard Rails dev tooling - no Redis, no Postgres, no API keys).
+On supported Linux hosts, install Playwright's system dependencies once with
+`npx playwright install-deps chromium` before running browser tests locally.
 
 ```bash
 git clone https://github.com/shakacode/react-on-rails-demo-flagship.git
@@ -66,6 +71,11 @@ RENDERER_PORT=3801
 RENDERER_URL=http://localhost:3801
 ```
 
+For parallel worktrees, `REACT_ON_RAILS_BASE_PORT` reserves a consecutive
+Rails/Shakapacker/renderer port block (`base`, `base + 1`, `base + 2`). It takes
+precedence over `CONDUCTOR_PORT`, which provides the same block contract as a fallback;
+either base-port setting takes precedence over the individual port variables above.
+
 In local development `bin/dev` opts into the shared `development_password`
 between Rails and the Node renderer. If you run Rails manually without setting
 `RENDERER_PASSWORD`, also set `ALLOW_DEMO_RENDERER_PASSWORD=true`. Production-like
@@ -77,6 +87,9 @@ container network.
 `bin/ci` also fails closed by default. Run it with `RENDERER_PASSWORD=...` for a
 production-like check, or use `ALLOW_DEMO_RENDERER_PASSWORD=true bin/ci` for a
 disposable local/demo check.
+
+`PLAYWRIGHT_BASE_URL` accepts loopback targets by default; set
+`PLAYWRIGHT_ALLOW_REMOTE_MUTATIONS=true` only for a disposable remote CI/container target because browser tests can write target data.
 
 If you run with `RAILS_ENV=production` and no Pro license token, Pro will warn
 about the missing production license. That is expected for demo/evaluation use.
@@ -122,6 +135,23 @@ time, the Node renderer runs as a sidecar service, and the SQLite database is
 created and seeded at boot. The containers boot deterministically with no
 network access after the image build.
 
+### Rolling-deploy VM headroom
+
+The demo gives each Node renderer worker a four-context VM pool. An RSC rollout
+can send one draining and one current bundle generation to the same worker, and
+each generation uses a server context plus an RSC context:
+
+```text
+2 simultaneous generations × (1 server + 1 RSC) = 4 contexts per worker
+```
+
+`MAX_VM_POOL_SIZE` is a hard cap, not an eager allocation target. The container
+example sets it explicitly to `4`; `client/node-renderer.js` uses the same
+bounded default and rejects invalid values. With the demo's two renderer
+workers, one replica can retain at most eight compiled contexts. Production
+memory requests and limits should include that per-worker headroom, multiplied
+by renderer replicas and any temporary rollout surge.
+
 ## What to look at
 
 | Concern | File |
@@ -131,13 +161,13 @@ network access after the image build.
 | JSON CRUD endpoints | `app/controllers/api/tasks_controller.rb` |
 | Redux Toolkit slice + async thunks (CSRF included) | `app/javascript/src/TasksApp/store/tasksSlice.ts` |
 | Store seeded from streamed props (hydration matches) | `app/javascript/src/TasksApp/store/tasksStore.ts` |
-| Auto-registered RSC/client component pair | `app/javascript/src/TasksApp/ror_components/` |
+| Auto-registered no-directive RSC entry + hydrated client boundary | `app/javascript/src/TasksApp/ror_components/TasksApp.tsx`, `app/javascript/src/TasksApp/components/TasksApp.tsx` |
 | Pro Node renderer entrypoint | `client/node-renderer.js` |
 | RSC bundle config | `config/rspack/rscWebpackConfig.js` |
 | Visible error states | `app/javascript/src/TasksApp/components/ErrorBanner.tsx` (try submitting an empty title) |
 | Deterministic seeds | `db/seeds.rb` |
 | RSC smoke check | `bin/smoke` |
-| CI (PR + push + weekly cron) | `.github/workflows/smoke.yml` |
+| CI (PR + push + weekly cron) | `.github/workflows/demo-fleet-smoke.yml` |
 
 ## How Pro/RSC Works Here
 
@@ -159,8 +189,8 @@ network access after the image build.
 Components are auto-registered: anything under
 `app/javascript/src/*/ror_components/` gets its own pack generated by
 `react_on_rails:generate_packs` (wired in via Shakapacker's `precompile_hook`).
-The `'use client'` directive in `TasksApp.client.tsx` marks the hydrated client
-component; `TasksApp.server.tsx` remains the server component entrypoint.
+`ror_components/TasksApp.tsx` is the no-directive, auto-registered RSC entry;
+`components/TasksApp.tsx` is its `'use client'` hydrated boundary.
 
 ## Error states on purpose
 
@@ -203,4 +233,19 @@ the default app, because the flagship exists to show the Pro/RSC architecture.
 
 ## License
 
-MIT
+This demo repository's own code is available under the [MIT License](LICENSE.md).
+Its dependencies have their own license terms.
+
+The React on Rails Pro packages demonstrated here—`react_on_rails_pro`,
+`react-on-rails-pro`, and `react-on-rails-pro-node-renderer`—are commercially
+licensed. Starting with the stable `react-on-rails-rsc` 19.2.1 release, RSC is
+licensed on the same terms. Evaluation, education, demos, tutorials, workshops,
+and personal or hobby use remain royalty-free under those terms. Production Use
+requires an appropriate paid or Complimentary OSS license.
+
+All permitted uses must retain any generated product-level attribution. The
+Rails/Pro integration emits exactly one attribution comment per HTML document
+containing Pro-rendered output; `react-on-rails-rsc` does not add a separate
+package-level comment. Read the
+[canonical React on Rails Pro license terms](https://github.com/shakacode/react_on_rails/blob/main/REACT-ON-RAILS-PRO-LICENSE.md)
+for the complete conditions.

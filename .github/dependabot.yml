@@ -7,11 +7,14 @@ updates:
   - package-ecosystem: "bundler"
     directory: "/"
     schedule:
-      interval: "monthly"
+      interval: "weekly"
     open-pull-requests-limit: 5
     cooldown:
       default-days: 3
     groups:
+      react_on_rails:
+        patterns:
+          - "react_on_rails*"
       ruby:
         patterns:
           - "*"
@@ -19,11 +22,14 @@ updates:
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "monthly"
+      interval: "weekly"
     open-pull-requests-limit: 5
     cooldown:
       default-days: 3
     groups:
+      react-on-rails:
+        patterns:
+          - "react-on-rails*"
       javascript:
         patterns:
           - "*"
@@ -31,7 +37,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "monthly"
+      interval: "weekly"
     open-pull-requests-limit: 5
     cooldown:
       default-days: 3

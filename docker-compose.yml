@@ -17,6 +17,8 @@ services:
       RENDERER_PASSWORD: "development_password"
       RENDERER_PORT: "3800"
       RENDERER_WORKERS_COUNT: "2"
+      # old/new × server/RSC contexts per worker during a rolling deploy
+      MAX_VM_POOL_SIZE: "4"
     healthcheck:
       test: ["CMD", "node", "bin/node-renderer-healthcheck"]
       interval: 5s

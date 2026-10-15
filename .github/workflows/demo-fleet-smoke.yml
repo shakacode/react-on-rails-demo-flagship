@@ -1,0 +1,28 @@
+name: Demo fleet smoke
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "23 14 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    uses: shakacode/react_on_rails/.github/workflows/demo-fleet-smoke.yml@613c6c2a251a782328b26d68e7f23daa9b677497
+    with:
+      ruby-version: "3.4.6"
+      node-version: "22.12.0"
+      install-command: bundle config set path vendor/bundle && bundle install --jobs 4 && npm ci && npx playwright install --with-deps chromium
+      test-command: npm run typecheck
+      build-command: docker compose build
+      smoke-command: docker compose up -d && bin/smoke && PLAYWRIGHT_BASE_URL=http://localhost:3000 npm run test:browser

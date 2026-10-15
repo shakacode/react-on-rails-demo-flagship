@@ -13,11 +13,24 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: flagship-staging
+  cancel-in-progress: false
+
 jobs:
   deploy-staging:
-    uses: shakacode/control-plane-flow/.github/workflows/cpflow-deploy-staging.yml@v5.1.1
+    uses: shakacode/control-plane-flow/.github/workflows/cpflow-deploy-staging.yml@6aa575780f2d9175755881b79cbb3253adbc9c1f # v6.0.1
     with:
       staging_app_branch_default: ""
     secrets:
       CPLN_TOKEN_STAGING: ${{ secrets.CPLN_TOKEN_STAGING }}
       DOCKER_BUILD_SSH_KEY: ${{ secrets.DOCKER_BUILD_SSH_KEY }}
+  verify-staging:
+    needs: deploy-staging
+    uses: ./.github/workflows/verify-hosted-app.yml
+    with:
+      deployment_succeeded: ${{ needs.deploy-staging.result == 'success' }}
+      app_name: react-on-rails-demo-flagship-staging
+      revision: ${{ github.sha }}
+    secrets:
+      CPLN_TOKEN_STAGING: ${{ secrets.CPLN_TOKEN_STAGING }}

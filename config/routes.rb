@@ -1,6 +1,7 @@
 Rails.application.routes.draw do
   root 'tasks#index'
   get 'slow', to: 'slow_demo#index'
+  get '__deployment' => 'deployment#show'
   rsc_payload_route
 
   namespace :api, defaults: { format: :json } do
