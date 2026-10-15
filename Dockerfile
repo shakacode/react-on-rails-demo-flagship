@@ -49,6 +49,7 @@ ENV RAILS_ENV="production" \
 FROM base AS build
 
 # Install packages needed to build gems and JS assets
+# OpenSSL headers also support native openssl gems introduced by dependency updates.
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential git libssl-dev libyaml-dev pkg-config && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives

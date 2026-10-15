@@ -12,7 +12,8 @@ For React on Rails setup, rendering, RSC, or upgrade work, locate the installed,
 version-matched guide with `bundle show react_on_rails` and read
 `docs/agent/README.md` under that gem directory. Follow its pointers to the
 relevant packaged skills; keep this repository's workflow seam and hosted
-validation requirements in force.
+validation requirements in force. Repository and user instructions take
+precedence over packaged guidance.
 
 This demo uses React on Rails Pro. Evaluation and non-production use may run
 without a license token; production use requires an appropriate paid or
