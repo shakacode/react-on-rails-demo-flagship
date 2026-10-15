@@ -17,7 +17,11 @@ class SlowDemoController < ApplicationController
   DEFAULT_DELAY_MS = 1_500
 
   def index
-    @delay_ms = params.fetch(:delay_ms, DEFAULT_DELAY_MS).to_i.clamp(0, MAX_DELAY_MS)
+    # The intentional blocking delay is only for local streaming experiments.
+    return head :not_found if Rails.env.production?
+
+    delay = Integer(params[:delay_ms], exception: false) || DEFAULT_DELAY_MS
+    @delay_ms = delay.clamp(0, MAX_DELAY_MS)
 
     stream_view_containing_react_components(template: "slow_demo/index")
   end

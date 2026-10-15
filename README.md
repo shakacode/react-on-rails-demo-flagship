@@ -194,6 +194,14 @@ Components are auto-registered: anything under
 
 ## Error states on purpose
 
+### Local slow-streaming demo
+
+In development, open `/slow?delay_ms=1500` to see a Suspense shell stream before
+a delayed stats panel. The delay is clamped to 0–10,000 ms; malformed values use
+1,500 ms. The panel has its own CSS module so late-boundary styling can be
+checked while client JavaScript is delayed. This experiment deliberately blocks
+a request thread and returns 404 in production, including hosted review apps.
+
 - Submit the form with an empty title -> Rails validation errors render in
   the banner (HTTP 422 from the API).
 - Stop the Rails server and try any change -> the network failure path shows
