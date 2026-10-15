@@ -30,8 +30,8 @@ JSON mutations, one app, one deploy.
 | Pro Node renderer | 17.2.0 |
 | Shakapacker | 10.3.2 (Rspack 2 bundler) |
 | React / ReactDOM | 19.3.0 (coordinated with Flight 19.3.0 and RSC 19.3.1) |
-| Redux Toolkit | 2.12.0 |
-| TypeScript | 6.0.3 |
+| Redux Toolkit | 2.13.0 |
+| TypeScript | 7.0.2 |
 | Node | 20.19+ or 22.12+ (22.12.0 in the container) |
 | Database | SQLite |
 
