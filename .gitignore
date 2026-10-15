@@ -32,6 +32,7 @@
 
 # Ignore key files for decrypting credentials and more.
 /config/*.key
+/config/credentials/*.key
 
 
 /public/packs
@@ -45,4 +46,6 @@ yarn-debug.log*
 **/generated/**
 ssr-generated
 .node-renderer-bundles
+.node-renderer-bundles.preseed.lock
+.node-renderer-bundles.artifact-snapshots
 .env
