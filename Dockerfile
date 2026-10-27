@@ -11,7 +11,7 @@
 # the boot needs no network access and produces the same app every time.
 
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version
-ARG RUBY_VERSION=3.4.6
+ARG RUBY_VERSION=3.4.9
 ARG NODE_VERSION=22.12.0
 FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
 

@@ -23,7 +23,7 @@ JSON mutations, one app, one deploy.
 
 | Layer | Version |
 | --- | --- |
-| Ruby | 3.4.6 |
+| Ruby | 3.4.9 |
 | Rails | 8.1.3 |
 | react_on_rails_pro (gem + npm) | 17.2.1.rc.0 / 17.2.1-rc.0 |
 | react-on-rails-rsc | 19.3.1 |
@@ -41,7 +41,7 @@ JSON mutations, one app, one deploy.
 
 ## Run it: clone and run
 
-Prerequisites: Ruby 3.4.6, Node 20.19+ or 22.12+, npm, SQLite (all
+Prerequisites: Ruby 3.4.9, Node 20.19+ or 22.12+, npm, SQLite (all
 standard Rails dev tooling - no Redis, no Postgres, no API keys).
 On supported Linux hosts, install Playwright's system dependencies once with
 `npx playwright install-deps chromium` before running browser tests locally.
