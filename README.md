@@ -257,3 +257,5 @@ containing Pro-rendered output; `react-on-rails-rsc` does not add a separate
 package-level comment. Read the
 [canonical React on Rails Pro license terms](https://github.com/shakacode/react_on_rails/blob/main/REACT-ON-RAILS-PRO-LICENSE.md)
 for the complete conditions.
+
+<!-- Verification-only workflow event for #80 after #79; close without merging. -->
