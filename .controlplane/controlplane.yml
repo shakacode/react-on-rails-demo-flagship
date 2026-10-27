@@ -34,3 +34,6 @@ apps:
   react-on-rails-demo-flagship-review:
     <<: *common
     match_if_app_name_starts_with: true
+    generated_review_secret_keys:
+      - SECRET_KEY_BASE
+      - RENDERER_PASSWORD
