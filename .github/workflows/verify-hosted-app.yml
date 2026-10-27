@@ -45,7 +45,7 @@ jobs:
           cache: npm
       - uses: ruby/setup-ruby@651ff0d62c5c79bed6d53ec518387aae20e72c1a # v1.329.0
         with:
-          ruby-version: '3.4.6'
+          ruby-version: '3.4.9'
       - name: Install browser and Control Plane tooling
         run: npm ci && npx playwright install --with-deps chromium && npm install --global @controlplane/cli@3.14.1
       - name: Wait for the exact hosted revision

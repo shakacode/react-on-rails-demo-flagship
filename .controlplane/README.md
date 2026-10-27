@@ -108,10 +108,11 @@ require a manual browser visit and PR evidence as described in `AGENTS.md`.
 The staging workflow runs the same verification after deployment; updating an
 image alone no longer completes the staging workflow successfully.
 
-Review apps use the `react-on-rails-demo-flagship-review` prefix and a separate
-review-only secret dictionary. Populate its `SECRET_KEY_BASE` and
-`RENDERER_PASSWORD` with generated values before the first review app. Keep the
-staging secret dictionary separate. Bootstrap a PR app by running the Review app
+Review apps use `react-on-rails-demo-flagship-review-PR_NUMBER` as their app name.
+Native bootstrap generates `SECRET_KEY_BASE` and `RENDERER_PASSWORD` in that app's
+`APP_NAME-secrets` dictionary and binds only its identity to the generated policy.
+Refreshes preserve existing nonblank values and generate only missing keys. Keep
+the staging secret dictionary separate. Bootstrap a PR app by running the Review app
 workflow manually for that PR; it creates the app, builds the PR head, and deploys it:
 
 ```bash
@@ -127,7 +128,9 @@ staging token to an untrusted PR.
 The upstream wrapper deliberately skips initial creation on PR events; missing
 apps fail the hosted verification rather than counting as a tested deployment.
 Delete the disposable app with `cpflow delete -a APP_NAME --org ORG` after
-the PR closes. Preserve the review-only dictionary while other review apps use it.
+the PR closes. Ownership checks let cleanup remove that app's generated dictionary
+and its exact-target policy. Preserve staging secrets and any legacy shared review
+dictionary or policy still used by other apps.
 
 For an existing staging GVC, refresh only the app template to repair renderer
 environment settings and the renderer template to repair its HTTP/2 port,
