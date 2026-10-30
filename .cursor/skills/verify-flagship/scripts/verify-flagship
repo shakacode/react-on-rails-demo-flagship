@@ -99,14 +99,14 @@ cmd_launch() {
     die "a Rails server from this checkout is already running (tmp/pids/server.pid=$(cat "$ROOT/tmp/pids/server.pid")). Refusing to double-drive it; use a separate worktree."
   fi
 
-  # Overmind (~/.overmind.env, ./.overmind.env, ./.env, then $OVERMIND_ENV) and foreman (./.env)
-  # load env files over this script's exports, so a database or port setting in one would point
-  # the run at someone else's state. Refuse those files; $OVERMIND_ENV is unset below.
+  # Overmind loads ~/.overmind.env, ./.overmind.env, ./.env, and $OVERMIND_ENV files over this
+  # script's exports (and those files can chain more via OVERMIND_ENV); foreman loads ./.env and
+  # ./.foreman. Any of them can redirect the database, ports, or overmind's socket, so the run
+  # loads none: refuse if one exists, and drop inherited OVERMIND_* settings below.
   local env_file
-  for env_file in "$HOME/.overmind.env" "$ROOT/.overmind.env" "$ROOT/.env"; do
-    if [[ -f "$env_file" ]] && grep -Eq '^[[:space:]]*(export[[:space:]]+)?(DATABASE_URL|PORT|RENDERER_URL|REACT_RENDERER_URL|RENDERER_PORT|SHAKAPACKER_DEV_SERVER_PORT|REACT_ON_RAILS_BASE_PORT|CONDUCTOR_PORT)=' "$env_file"; then
-      die "$env_file sets a database, port, or renderer variable that would override this run's isolation. Launch from a worktree without it, or move that setting."
-    fi
+  for env_file in "$HOME/.overmind.env" "$ROOT/.overmind.env" "$ROOT/.env" "$ROOT/.foreman"; do
+    [[ -e "$env_file" ]] &&
+      die "$env_file exists; foreman and overmind would load it over this run's isolated settings. Launch from a worktree without it, or move it aside for the run."
   done
 
   if [[ -z "$base_port" ]]; then
@@ -157,8 +157,9 @@ cmd_launch() {
   export ALLOW_DEMO_RENDERER_PASSWORD=true
   export REACT_ON_RAILS_BASE_PORT="$base_port"
   export DATABASE_URL="$database_url"
+  local inherited
+  for inherited in $(compgen -e | grep '^OVERMIND_' || true); do unset "$inherited"; done
   export OVERMIND_SOCKET="$overmind_socket"
-  unset OVERMIND_ENV
 
   log "preparing and seeding the disposable database"
   (cd "$ROOT" && bin/rails db:prepare db:seed) >"$RUN_DIR/db-setup.log" 2>&1 ||

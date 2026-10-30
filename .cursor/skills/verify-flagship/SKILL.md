@@ -30,7 +30,7 @@ Prerequisites, once per checkout: `bundle install`, `npm install`, and `npx play
 
 Launch does, in order:
 
-1. Refuses if a Rails server from this checkout is already running (`tmp/pids/server.pid`), or if `.env`, `.overmind.env`, or `~/.overmind.env` sets `DATABASE_URL`, a port, or a renderer URL: foreman and overmind load those files over the run's exports. Launch also unsets `OVERMIND_ENV` for the run. Picks the first free Rails/webpack/renderer port block from 4710 upward (`REACT_ON_RAILS_BASE_PORT`), never 3000.
+1. Refuses if a Rails server from this checkout is already running (`tmp/pids/server.pid`), or if any of `~/.overmind.env`, `.overmind.env`, `.env`, or `.foreman` exists. Overmind and foreman load those files over the run's exports, and the files can chain further files, so the run loads none of them. Launch also drops every inherited `OVERMIND_*` variable before setting its own socket. Picks the first free Rails/webpack/renderer port block from 4710 upward (`REACT_ON_RAILS_BASE_PORT`), never 3000.
 2. Creates a run under `tmp/verify-flagship/runs/<RUN_ID>/` and an evidence dir `tmp/verify-flagship/evidence/<RUN_ID>/`.
 3. Exports `ALLOW_DEMO_RENDERER_PASSWORD=true`, `DATABASE_URL=sqlite3:<run>/verify.sqlite3`, `REACT_ON_RAILS_BASE_PORT`, and `OVERMIND_SOCKET=/tmp/verify-flagship-<RUN_ID>.sock`, then runs `bin/rails db:prepare db:seed` against the empty run DB (six seeded tasks).
 4. Starts `bin/dev --no-open-browser` (or `bin/dev static --no-open-browser`) in the background, logging to `<run>/bin-dev.log`.
@@ -126,6 +126,7 @@ Run cleanup after every failed launch or drive too. `verify-flagship status` lis
 
 - **One instance per checkout.** The Puma pidfile, `public/packs`, `ssr-generated`, and `.node-renderer-bundles` are shared by every `bin/dev` started in a directory. Run a second instance from another `git worktree`, which also gets its own port block.
 - **Bare `bin/dev` fails** with `KeyError: RENDERER_PASSWORD is required unless ALLOW_DEMO_RENDERER_PASSWORD=true in development/test` during "Generating React on Rails packs". `bin/dev` sets that variable after `require "bundler/setup"`, and the pack generator's `Bundler.with_unbundled_env` drops it. Launch exports it beforehand; keep doing so until `bin/dev` is fixed.
+- **Env files block launch.** The README suggests per-worktree ports in `.env`; this skill picks its own ports instead, so keep `.env` out of the checkout you verify from, or use a fresh worktree.
 - **Port 3000 is often someone else's dev server.** Launch never uses it, and Doctor proves which process and database you are talking to.
 - `/slow` deliberately blocks a Puma thread for `delay_ms` (clamped to 0–10,000), and returns 404 outside development and test. Delays above 5 s exceed the Pro renderer's default `ssr_timeout`, and the panel never renders; `drive slow` reports that as a failure (see [slow-page.md](features/slow-page.md)).
 
