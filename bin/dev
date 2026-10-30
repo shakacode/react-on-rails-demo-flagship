@@ -61,10 +61,11 @@
 #   puts ""
 # end
 
-require "bundler/setup"
-
+# Set before bundler/setup: Bundler snapshots ENV at load, and the pack generator
+# runs inside Bundler.with_unbundled_env, which restores that snapshot.
 ENV["ALLOW_DEMO_RENDERER_PASSWORD"] ||= "true"
 
+require "bundler/setup"
 require "react_on_rails/dev"
 
 # Default route configuration
