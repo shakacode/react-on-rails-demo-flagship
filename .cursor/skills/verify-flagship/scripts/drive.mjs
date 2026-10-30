@@ -159,6 +159,7 @@ const drives = {
   async delete(page) {
     const title = `Verify delete ${runId}`;
     await openBoard(page);
+    const seededIds = (await apiTasks(page)).map((t) => t.id);
     const created = await addTask(page, title, 'Disposable task for the delete journey');
     check('setup: disposable task created through the form', created.status() === 201);
     await card(page, title).waitFor();
@@ -174,7 +175,10 @@ const drives = {
 
     await page.reload({ waitUntil: 'networkidle' });
     check('card stays gone after reload', (await card(page, title).count()) === 0);
-    check('GET /api/tasks no longer returns the task', !(await apiTasks(page)).some((t) => t.title === title));
+    const remaining = await apiTasks(page);
+    check('GET /api/tasks no longer returns the task', !remaining.some((t) => t.title === title));
+    const remainingIds = remaining.map((t) => t.id);
+    check('every seeded task remains after the delete', seededIds.every((id) => remainingIds.includes(id)), { seededIds, remainingIds });
 
     const token = await page.locator('meta[name="csrf-token"]').getAttribute('content');
     const missing = await apiCall(page, 'DELETE', '/api/tasks/999999', { 'X-CSRF-Token': token });

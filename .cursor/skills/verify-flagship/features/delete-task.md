@@ -21,7 +21,7 @@ Preconditions:
 
 - **Setup.** Create a disposable task through the form, so no seeded row is the victim. Run `verify-flagship drive delete`. `POST /api/tasks` answers 201, and the card `Verify delete <RUN_ID>` appears.
 - **Delete.** Choose `Delete` inside that card. `network.json` records `DELETE /api/tasks/:id` with status 204 and `csrfHeaderSent: true`, and the card detaches.
-- **Persist.** Reload the page. The card is absent, and `GET /api/tasks` has no task with that title.
+- **Persist.** Reload the page. The card is absent, `GET /api/tasks` has no task with that title, and every task ID present before the delete is still returned.
 - **Missing task.** The drive reads `meta[name="csrf-token"]` and sends `DELETE /api/tasks/999999` from the page's session. It answers 404 with `{"errors":["Task not found"]}`.
 - **Proof.** `before.png` and `after-delete.png` with matching `.aria.txt` files, plus `result.json` with `"passed": true`.
 
