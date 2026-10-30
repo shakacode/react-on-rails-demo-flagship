@@ -30,13 +30,13 @@ Prerequisites, once per checkout: `bundle install`, `npm install`, and `npx play
 
 Launch does, in order:
 
-1. Refuses if a Rails server from this checkout is already running (`tmp/pids/server.pid`). Picks the first free Rails/webpack/renderer port block from 4710 upward (`REACT_ON_RAILS_BASE_PORT`), never 3000.
+1. Refuses if a Rails server from this checkout is already running (`tmp/pids/server.pid`), or if `.env` or `.overmind.env` sets `DATABASE_URL`, a port, or a renderer URL: foreman and overmind load those files into every process, overriding the run's isolation. Picks the first free Rails/webpack/renderer port block from 4710 upward (`REACT_ON_RAILS_BASE_PORT`), never 3000.
 2. Creates a run under `tmp/verify-flagship/runs/<RUN_ID>/` and an evidence dir `tmp/verify-flagship/evidence/<RUN_ID>/`.
 3. Exports `ALLOW_DEMO_RENDERER_PASSWORD=true`, `DATABASE_URL=sqlite3:<run>/verify.sqlite3`, `REACT_ON_RAILS_BASE_PORT`, and `OVERMIND_SOCKET=/tmp/verify-flagship-<RUN_ID>.sock`, then runs `bin/rails db:prepare db:seed` against the empty run DB (six seeded tasks).
 4. Starts `bin/dev --no-open-browser` (or `bin/dev static --no-open-browser`) in the background, logging to `<run>/bin-dev.log`.
 5. Waits up to 300 s (`VERIFY_FLAGSHIP_READY_TIMEOUT`) until `bin/smoke` passes against the run's URL.
 
-**Ready** is the line `==> READY run=<RUN_ID> mode=<mode> url=http://localhost:<port>`. It means `bin/smoke` found six `data-testid="task-card"` elements and the seeded title inside rendered `<h3>` markup in the raw streamed HTML. `/up` answering 200 alone is not ready: it passes before the Pro renderer and bundles can serve the board.
+**Ready** is the line `==> READY run=<RUN_ID> mode=<mode> url=http://localhost:<port>`. It means `bin/smoke` found `data-testid="task-card"` markup and the seeded title inside rendered `<h3>` markup in the raw streamed HTML. Smoke prints the card count but does not require six; `drive board` enforces the exact count. `/up` answering 200 alone is not ready: it passes before the Pro renderer and bundles can serve the board.
 
 Use `--mode static` for any journey that blocks client JavaScript (the `/slow` no-FOUC check). In HMR mode the dev server injects CSS with JavaScript, so a no-JS page is unstyled by design.
 
@@ -51,9 +51,8 @@ Teardown is [Cleanup](#cleanup).
 Read-only. Run it first, and again whenever anything looks off. It must end with `doctor: healthy`; otherwise do not drive. It checks that:
 
 - the `bin/dev` PID launch started is alive, with the same start time launch recorded;
-- the process listening on the Rails port is one launch recorded as its own, and runs from this checkout;
+- every listener on the Rails port and on the renderer port is a process launch recorded, or descends from one, and the Rails listener runs from this checkout;
 - `/api/tasks` serves exactly the rows in this run's SQLite file, so the instance isn't using `storage/development.sqlite3`;
-- the node renderer listens on its port;
 - `/__deployment` reports the `react_on_rails_pro` version pinned in `Gemfile.lock`;
 - `HEAD` still matches the commit recorded at launch;
 - `bin/smoke` still passes.
@@ -64,7 +63,7 @@ Read-only. Run it first, and again whenever anything looks off. It must end with
 .cursor/skills/verify-flagship/scripts/verify-flagship drive <board|create|update|delete|slow> [RUN_ID]
 ```
 
-`drive` runs [`scripts/drive.mjs`](scripts/drive.mjs) in headless Chromium against the run's URL, then reseeds the run DB (`bin/rails db:seed`, which converges to the six seeded tasks) so the next drive starts from the baseline. Exit code 0 means every check passed; each check prints as `[ok]` or `[FAIL]` with its observed value.
+`drive` first runs Doctor and refuses to touch an instance that fails it. It then runs [`scripts/drive.mjs`](scripts/drive.mjs) in headless Chromium against the run's URL, and reseeds the run DB (`bin/rails db:seed`, which converges to the six seeded tasks) so the next drive starts from the baseline. Exit code 0 means every check passed; each check prints as `[ok]` or `[FAIL]` with its observed value.
 
 Selectors are the app's own stable hooks; never use coordinates or DOM position:
 

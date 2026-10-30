@@ -101,7 +101,7 @@ const drives = {
       check(`column-${status} ("${heading}") holds 2 seeded cards`, count === 2, { count });
     }
     const stamp = (await page.getByTestId('ssr-timestamp').textContent())?.trim();
-    check('ssr-timestamp shows a server render time', Boolean(stamp), { stamp });
+    check('ssr-timestamp shows an ISO server render time', /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(stamp ?? ''), { stamp });
     await snap(page, 'board', page.getByTestId('tasks-app'));
   },
 
@@ -232,6 +232,10 @@ const drives = {
     });
     await snap(page, 'no-js');
     await page.unroute('**/*');
+    // The aborted script requests above log net::ERR_FAILED; drop only those, so a failed load in
+    // the JavaScript-enabled passes below still counts.
+    const kept = consoleErrors.filter((e) => !e.includes('net::ERR_FAILED'));
+    consoleErrors.splice(0, consoleErrors.length, ...kept);
 
     await page.goto('/slow?delay_ms=not-a-number', { waitUntil: 'networkidle' });
     check('malformed delay_ms falls back to 1500ms', (await panel.textContent())?.includes('Stats loaded after 1500ms'));
@@ -269,9 +273,7 @@ try {
   check(`drive completed without an exception`, false, crash.split('\n')[0]);
   await page.screenshot({ path: path.join(outDir, 'failure.png'), fullPage: true }).catch(() => {});
 } finally {
-  // A blocked-script load intentionally logs failed script requests; only the JS-enabled pass counts.
-  const relevantErrors = feature === 'slow' ? consoleErrors.filter((e) => !e.includes('net::ERR_FAILED')) : consoleErrors;
-  check('no console or page errors', relevantErrors.length === 0, relevantErrors.length ? relevantErrors : undefined);
+  check('no console or page errors', consoleErrors.length === 0, consoleErrors.length ? consoleErrors : undefined);
   await browser.close();
 }
 

@@ -97,6 +97,15 @@ cmd_launch() {
     die "a Rails server from this checkout is already running (tmp/pids/server.pid=$(cat "$ROOT/tmp/pids/server.pid")). Refusing to double-drive it; use a separate worktree."
   fi
 
+  # Foreman and overmind load these files into every Procfile process, after this script's
+  # exports, so a database or port setting there would point the run at someone else's state.
+  local env_file
+  for env_file in .env .overmind.env; do
+    if [[ -f "$ROOT/$env_file" ]] && grep -Eq '^[[:space:]]*(export[[:space:]]+)?(DATABASE_URL|PORT|RENDERER_URL|REACT_RENDERER_URL|RENDERER_PORT|SHAKAPACKER_DEV_SERVER_PORT|REACT_ON_RAILS_BASE_PORT|CONDUCTOR_PORT)=' "$ROOT/$env_file"; then
+      die "$env_file sets a database, port, or renderer variable that would override this run's isolation. Launch from a worktree without it."
+    fi
+  done
+
   if [[ -z "$base_port" ]]; then
     for candidate in $(seq 4710 3 4797); do
       if ports_free "$candidate" "$((candidate + 1))" "$((candidate + 2))"; then base_port="$candidate"; break; fi
@@ -119,7 +128,6 @@ cmd_launch() {
   cat >"$RUN_DIR/state.env" <<EOF
 RUN_ID='$run_id'
 ROOT='$ROOT'
-BASE_PORT='$base_port'
 RAILS_PORT='$base_port'
 WEBPACK_PORT='$((base_port + 1))'
 RENDERER_PORT_USED='$((base_port + 2))'
@@ -216,7 +224,13 @@ cwd_is_root() { [[ "$(pid_cwd "$1")" == "$ROOT" ]]; }
 equal_nonempty() { [[ -n "$1" && "$1" == "$2" ]]; }
 contains() { [[ "$1" == *"$2"* ]]; }
 head_unchanged() { [[ "$(git -C "$ROOT" rev-parse HEAD)" == "$GIT_HEAD" ]]; }
-listens() { [[ -n "$(port_listeners "$1")" ]]; }
+# Every listener on the port must be a recorded process or descend from one (renderer workers restart).
+listeners_ours() {
+  local pid pids
+  pids="$(port_listeners "$1")"
+  [[ -n "$pids" ]] || return 1
+  for pid in $pids; do descends_from_owned "$pid" || return 1; done
+}
 smoke_passes() { (cd "$ROOT" && SMOKE_URL="$BASE_URL" SMOKE_WAIT_SECONDS=5 bin/smoke >/dev/null 2>&1); }
 
 cmd_doctor() {
@@ -232,11 +246,8 @@ cmd_doctor() {
 
   local listener
   listener="$(port_listeners "$RAILS_PORT" | head -1)"
-  check "something listens on :$RAILS_PORT" listens "$RAILS_PORT"
-  if [[ -n "$listener" ]]; then
-    check "listener $listener on :$RAILS_PORT was started by this run" still_ours "$listener"
-    check "listener $listener runs from $ROOT" cwd_is_root "$listener"
-  fi
+  check "Rails listeners on :$RAILS_PORT were started by this run" listeners_ours "$RAILS_PORT"
+  if [[ -n "$listener" ]]; then check "Rails listener $listener runs from $ROOT" cwd_is_root "$listener"; fi
   # Prove the server reads this run's database, not storage/development.sqlite3: the rows the
   # API serves must match the run DB's (id, updated_at) pairs, which the launch seed stamped.
   local db_rows api_rows
@@ -246,7 +257,7 @@ cmd_doctor() {
     'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{for(const t of JSON.parse(s).tasks.sort((a,b)=>a.id-b.id))console.log(`${t.id} ${t.updatedAt.slice(0,19)}`)})' \
     2>/dev/null || true)"
   check "/api/tasks serves this run's database (${DATABASE_URL_USED#sqlite3:})" equal_nonempty "$db_rows" "$api_rows"
-  check "node renderer listens on :$RENDERER_PORT_USED" listens "$RENDERER_PORT_USED"
+  check "node renderer listeners on :$RENDERER_PORT_USED were started by this run" listeners_ours "$RENDERER_PORT_USED"
 
   local deployment expected_pro
   deployment="$(curl -fsS "$BASE_URL/__deployment" 2>/dev/null || true)"
@@ -268,6 +279,9 @@ cmd_drive() {
   local feature="${1:-}"
   [[ -n "$feature" ]] || die "usage: drive FEATURE [RUN_ID]"
   resolve_run "${2:-}"
+  # Never mutate an instance that is not provably this run's (wrong DB, foreign port owner, ...).
+  cmd_doctor "$RUN_ID" >"$RUN_DIR/doctor-before-drive.log" 2>&1 ||
+    { cat "$RUN_DIR/doctor-before-drive.log" >&2; die "doctor failed; refusing to drive $feature"; }
   local status=0
   (cd "$ROOT" && VERIFY_BASE_URL="$BASE_URL" VERIFY_EVIDENCE_DIR="$EVIDENCE_DIR" VERIFY_RUN_ID="$RUN_ID" \
     VERIFY_GIT_HEAD="$GIT_HEAD" VERIFY_LAUNCH_MODE="${LAUNCH_MODE:-hmr}" node "$SCRIPT_DIR/drive.mjs" "$feature") || status=$?

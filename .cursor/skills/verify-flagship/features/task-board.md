@@ -23,7 +23,7 @@ Preconditions:
 - **Streamed HTML.** Fetch `/` without a browser. Run `verify-flagship drive board`. `streamed.html` contains six `data-testid="task-card"` and `Render the first screen on the server</h3>`.
 - **Hydrated board.** The same drive opens `/` and waits for network idle. `tasks-app` is visible with six `task-card` elements.
 - **Columns.** The drive counts cards per column. `column-todo`, `column-doing`, and `column-done` each report 2.
-- **Server stamp.** The drive reads `ssr-timestamp`. It holds a non-empty ISO time.
+- **Server stamp.** The drive reads `ssr-timestamp`. It holds an ISO 8601 time.
 - **Proof.** `board.png` and `board.aria.txt` show the three column headings with counts, and `result.json` has `"passed": true`.
 
 ## Gotchas
