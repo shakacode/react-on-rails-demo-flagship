@@ -99,12 +99,13 @@ cmd_launch() {
     die "a Rails server from this checkout is already running (tmp/pids/server.pid=$(cat "$ROOT/tmp/pids/server.pid")). Refusing to double-drive it; use a separate worktree."
   fi
 
-  # Foreman and overmind load these files into every Procfile process, after this script's
-  # exports, so a database or port setting there would point the run at someone else's state.
+  # Overmind (~/.overmind.env, ./.overmind.env, ./.env, then $OVERMIND_ENV) and foreman (./.env)
+  # load env files over this script's exports, so a database or port setting in one would point
+  # the run at someone else's state. Refuse those files; $OVERMIND_ENV is unset below.
   local env_file
-  for env_file in .env .overmind.env; do
-    if [[ -f "$ROOT/$env_file" ]] && grep -Eq '^[[:space:]]*(export[[:space:]]+)?(DATABASE_URL|PORT|RENDERER_URL|REACT_RENDERER_URL|RENDERER_PORT|SHAKAPACKER_DEV_SERVER_PORT|REACT_ON_RAILS_BASE_PORT|CONDUCTOR_PORT)=' "$ROOT/$env_file"; then
-      die "$env_file sets a database, port, or renderer variable that would override this run's isolation. Launch from a worktree without it."
+  for env_file in "$HOME/.overmind.env" "$ROOT/.overmind.env" "$ROOT/.env"; do
+    if [[ -f "$env_file" ]] && grep -Eq '^[[:space:]]*(export[[:space:]]+)?(DATABASE_URL|PORT|RENDERER_URL|REACT_RENDERER_URL|RENDERER_PORT|SHAKAPACKER_DEV_SERVER_PORT|REACT_ON_RAILS_BASE_PORT|CONDUCTOR_PORT)=' "$env_file"; then
+      die "$env_file sets a database, port, or renderer variable that would override this run's isolation. Launch from a worktree without it, or move that setting."
     fi
   done
 
@@ -127,20 +128,21 @@ cmd_launch() {
   local overmind_socket="/tmp/verify-flagship-$run_id.sock"
   local database_url="sqlite3:$RUN_DIR/verify.sqlite3"
 
-  cat >"$RUN_DIR/state.env" <<EOF
-RUN_ID='$run_id'
-ROOT='$ROOT'
-RAILS_PORT='$base_port'
-WEBPACK_PORT='$((base_port + 1))'
-RENDERER_PORT_USED='$((base_port + 2))'
-BASE_URL='http://localhost:$base_port'
-LAUNCH_MODE='$mode'
-DATABASE_URL_USED='$database_url'
-OVERMIND_SOCKET_USED='$overmind_socket'
-EVIDENCE_DIR='$evidence_dir'
-LAUNCH_LOG='$RUN_DIR/bin-dev.log'
-GIT_HEAD='$(git -C "$ROOT" rev-parse HEAD)'
-EOF
+  # %q keeps a checkout path with quotes or spaces safe to source.
+  {
+    printf 'RUN_ID=%q\n' "$run_id"
+    printf 'ROOT=%q\n' "$ROOT"
+    printf 'RAILS_PORT=%q\n' "$base_port"
+    printf 'WEBPACK_PORT=%q\n' "$((base_port + 1))"
+    printf 'RENDERER_PORT_USED=%q\n' "$((base_port + 2))"
+    printf 'BASE_URL=%q\n' "http://localhost:$base_port"
+    printf 'LAUNCH_MODE=%q\n' "$mode"
+    printf 'DATABASE_URL_USED=%q\n' "$database_url"
+    printf 'OVERMIND_SOCKET_USED=%q\n' "$overmind_socket"
+    printf 'EVIDENCE_DIR=%q\n' "$evidence_dir"
+    printf 'LAUNCH_LOG=%q\n' "$RUN_DIR/bin-dev.log"
+    printf 'GIT_HEAD=%q\n' "$(git -C "$ROOT" rev-parse HEAD)"
+  } >"$RUN_DIR/state.env"
   # shellcheck disable=SC1091
   source "$RUN_DIR/state.env"
   echo "$run_id" >"$VF_DIR/current"
@@ -156,6 +158,7 @@ EOF
   export REACT_ON_RAILS_BASE_PORT="$base_port"
   export DATABASE_URL="$database_url"
   export OVERMIND_SOCKET="$overmind_socket"
+  unset OVERMIND_ENV
 
   log "preparing and seeding the disposable database"
   (cd "$ROOT" && bin/rails db:prepare db:seed) >"$RUN_DIR/db-setup.log" 2>&1 ||
@@ -164,7 +167,7 @@ EOF
   log "starting bin/dev ${bin_dev_args[*]}"
   (cd "$ROOT" && exec nohup bin/dev "${bin_dev_args[@]}") >"$RUN_DIR/bin-dev.log" 2>&1 &
   local bin_dev_pid=$!
-  echo "BIN_DEV_PID='$bin_dev_pid'" >>"$RUN_DIR/state.env"
+  printf 'BIN_DEV_PID=%q\n' "$bin_dev_pid" >>"$RUN_DIR/state.env"
   own "$bin_dev_pid" bin-dev
 
   log "waiting up to ${READY_TIMEOUT}s for bin/smoke to pass at http://localhost:$base_port"

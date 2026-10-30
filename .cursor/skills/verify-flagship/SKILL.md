@@ -30,7 +30,7 @@ Prerequisites, once per checkout: `bundle install`, `npm install`, and `npx play
 
 Launch does, in order:
 
-1. Refuses if a Rails server from this checkout is already running (`tmp/pids/server.pid`), or if `.env` or `.overmind.env` sets `DATABASE_URL`, a port, or a renderer URL: foreman and overmind load those files into every process, overriding the run's isolation. Picks the first free Rails/webpack/renderer port block from 4710 upward (`REACT_ON_RAILS_BASE_PORT`), never 3000.
+1. Refuses if a Rails server from this checkout is already running (`tmp/pids/server.pid`), or if `.env`, `.overmind.env`, or `~/.overmind.env` sets `DATABASE_URL`, a port, or a renderer URL: foreman and overmind load those files over the run's exports. Launch also unsets `OVERMIND_ENV` for the run. Picks the first free Rails/webpack/renderer port block from 4710 upward (`REACT_ON_RAILS_BASE_PORT`), never 3000.
 2. Creates a run under `tmp/verify-flagship/runs/<RUN_ID>/` and an evidence dir `tmp/verify-flagship/evidence/<RUN_ID>/`.
 3. Exports `ALLOW_DEMO_RENDERER_PASSWORD=true`, `DATABASE_URL=sqlite3:<run>/verify.sqlite3`, `REACT_ON_RAILS_BASE_PORT`, and `OVERMIND_SOCKET=/tmp/verify-flagship-<RUN_ID>.sock`, then runs `bin/rails db:prepare db:seed` against the empty run DB (six seeded tasks).
 4. Starts `bin/dev --no-open-browser` (or `bin/dev static --no-open-browser`) in the background, logging to `<run>/bin-dev.log`.
