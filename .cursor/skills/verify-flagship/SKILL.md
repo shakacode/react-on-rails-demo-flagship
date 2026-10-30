@@ -129,4 +129,4 @@ Run cleanup after every failed launch or drive too. `verify-flagship status` lis
 - **Port 3000 is often someone else's dev server.** Launch never uses it, and Doctor proves which process and database you are talking to.
 - `/slow` deliberately blocks a Puma thread for `delay_ms` (clamped to 0–10,000), and returns 404 outside development and test. Delays above 5 s exceed the Pro renderer's default `ssr_timeout`, and the panel never renders; `drive slow` reports that as a failure (see [slow-page.md](features/slow-page.md)).
 
-Keep the map honest as the app changes with `/pstack-maintain-verification-skill`.
+Keep the map honest as the app changes with pstack's `maintain-verification-skill` ([cursor/plugins](https://github.com/cursor/plugins), installed as `/pstack-maintain-verification-skill`). When a route, handle, or seed changes, update the matching feature file in the same PR.

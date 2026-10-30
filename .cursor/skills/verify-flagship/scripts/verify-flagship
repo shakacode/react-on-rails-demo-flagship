@@ -64,6 +64,8 @@ resolve_run() {
     [[ -f "$VF_DIR/current" ]] || die "no current run; pass RUN_ID or run 'launch' first"
     run_id="$(cat "$VF_DIR/current")"
   fi
+  # Only IDs launch generates; cleanup deletes RUN_DIR, so nothing like ../ may reach it.
+  [[ "$run_id" =~ ^[0-9]{8}T[0-9]{6}Z-[0-9]+$ ]] || die "invalid RUN_ID '$run_id'"
   RUN_DIR="$RUNS_DIR/$run_id"
   [[ -f "$RUN_DIR/state.env" ]] || die "run $run_id has no state at $RUN_DIR/state.env (already cleaned up?)"
   # shellcheck disable=SC1091
