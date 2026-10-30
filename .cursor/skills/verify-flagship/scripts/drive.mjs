@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Drive one flagship demo feature through a real Chromium page and write proof artifacts.
 // Run through `verify-flagship drive FEATURE`, which supplies:
-//   VERIFY_BASE_URL, VERIFY_EVIDENCE_DIR, VERIFY_RUN_ID, VERIFY_GIT_HEAD
+//   VERIFY_BASE_URL, VERIFY_EVIDENCE_DIR, VERIFY_RUN_ID, VERIFY_GIT_HEAD, VERIFY_LAUNCH_MODE
 // Features: board | create | update | delete | slow
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -32,10 +32,18 @@ async function snap(page, name, locator = page.locator('body')) {
   await writeFile(path.join(outDir, `${name}.aria.txt`), `${await locator.ariaSnapshot()}\n`);
 }
 
+// Direct API calls (read-only second views and the missing-task probe) bypass the page's
+// response events, so log them here to keep network.json complete.
+async function apiCall(page, method, urlPath, headers = {}) {
+  const response = await page.request.fetch(urlPath, { method, headers: { Accept: 'application/json', ...headers } });
+  const body = response.status() === 204 ? null : await response.json().catch(() => '<non-JSON body>');
+  network.push({ via: 'api-request-context', method, path: urlPath, status: response.status(),
+    csrfHeaderSent: Boolean(headers['X-CSRF-Token']), requestBody: null, responseBody: body });
+  return { status: response.status(), body };
+}
+
 async function apiTasks(page) {
-  const response = await page.request.get('/api/tasks', { headers: { Accept: 'application/json' } });
-  const body = await response.json();
-  return body.tasks;
+  return (await apiCall(page, 'GET', '/api/tasks')).body.tasks;
 }
 
 function recordApiTraffic(page) {
@@ -49,6 +57,7 @@ function recordApiTraffic(page) {
       body = '<non-JSON body>';
     }
     network.push({
+      via: 'page',
       method: request.method(),
       path: new URL(request.url()).pathname,
       status: response.status(),
@@ -84,7 +93,8 @@ const drives = {
     await writeFile(path.join(outDir, 'streamed.html'), html);
 
     await openBoard(page);
-    await expectCount(page.getByTestId('task-card'), 6, 'hydrated board shows 6 task cards');
+    const cards = await page.getByTestId('task-card').count();
+    check('hydrated board shows 6 task cards', cards === 6, { count: cards });
     for (const [status, heading] of [['todo', 'To do'], ['doing', 'Doing'], ['done', 'Done']]) {
       const column = page.getByTestId(`column-${status}`);
       const count = await column.getByTestId('task-card').count();
@@ -167,8 +177,8 @@ const drives = {
     check('GET /api/tasks no longer returns the task', !(await apiTasks(page)).some((t) => t.title === title));
 
     const token = await page.locator('meta[name="csrf-token"]').getAttribute('content');
-    const missing = await page.request.delete('/api/tasks/999999', { headers: { Accept: 'application/json', 'X-CSRF-Token': token } });
-    check('DELETE of a missing task answers JSON 404 "Task not found"', missing.status() === 404 && JSON.stringify(await missing.json()) === '{"errors":["Task not found"]}', { status: missing.status() });
+    const missing = await apiCall(page, 'DELETE', '/api/tasks/999999', { 'X-CSRF-Token': token });
+    check('DELETE of a missing task answers JSON 404 "Task not found"', missing.status === 404 && JSON.stringify(missing.body) === '{"errors":["Task not found"]}', { status: missing.status });
   },
 
   async slow(page) {
@@ -187,6 +197,16 @@ const drives = {
     await writeFile(path.join(outDir, 'streamed.html'), html);
     check('header streams before the delayed panel', headerAt !== undefined && panelAt !== undefined && panelAt - headerAt >= delayMs * 0.8, { headerAtMs: headerAt, panelAtMs: panelAt });
 
+    // Sample the panel's background on the first frame it is visible, as test/browser/slow_demo.spec.ts
+    // does, so a panel that paints unstyled and is styled later still fails.
+    await page.addInitScript(() => {
+      const sample = () => {
+        const el = document.querySelector('[data-slow-stats-panel]');
+        if (el && el.getClientRects().length > 0) window.slowPanelAtReveal = getComputedStyle(el).backgroundColor;
+        else requestAnimationFrame(sample);
+      };
+      requestAnimationFrame(sample);
+    });
     let blockedScripts = 0;
     await page.route('**/*', (route) => {
       if (route.request().resourceType() === 'script') {
@@ -199,9 +219,13 @@ const drives = {
     const panel = page.locator('[data-slow-stats-panel]');
     await panel.waitFor();
     check('panel renders with client scripts blocked', blockedScripts > 0 && (await panel.textContent())?.includes(`Stats loaded after ${delayMs}ms`), { blockedScripts });
+    await page.waitForFunction(() => window.slowPanelAtReveal !== undefined);
+    const firstFrame = await page.evaluate(() => window.slowPanelAtReveal);
     const background = await panel.evaluate((el) => getComputedStyle(el).backgroundColor);
     const mode = process.env.VERIFY_LAUNCH_MODE ?? 'hmr';
-    check('late boundary is styled without client JS (no FOUC)', background === 'rgb(26, 26, 46)', {
+    const styled = 'rgb(26, 26, 46)';
+    check('late boundary is styled on its first visible frame without client JS (no FOUC)', firstFrame === styled && background === styled, {
+      firstFrame,
       background,
       mode,
       ...(mode === 'hmr' ? { reason: 'HMR injects CSS with JavaScript; relaunch with --mode static' } : {}),
@@ -212,13 +236,17 @@ const drives = {
     await page.goto('/slow?delay_ms=not-a-number', { waitUntil: 'networkidle' });
     check('malformed delay_ms falls back to 1500ms', (await panel.textContent())?.includes('Stats loaded after 1500ms'));
     await snap(page, 'with-js');
+
+    for (const [requested, applied] of [['-5', 0], ['20000', 10000]]) {
+      const response = await page.goto(`/slow?delay_ms=${requested}`, { waitUntil: 'networkidle', timeout: 30_000 });
+      const text = (await panel.count()) ? (await panel.textContent()).trim() : null;
+      check(`delay_ms=${requested} is clamped to ${applied}ms and the panel renders`, response.status() === 200 && text?.includes(`Stats loaded after ${applied}ms`), {
+        status: response.status(),
+        panel: text ?? 'missing: the Suspense fallback never resolved',
+      });
+    }
   },
 };
-
-async function expectCount(locator, expected, name) {
-  const count = await locator.count();
-  check(name, count === expected, { count });
-}
 
 if (!Object.hasOwn(drives, feature ?? '')) {
   console.error(`drive.mjs: unknown feature "${feature}". Choose one of: ${Object.keys(drives).join(', ')}`);

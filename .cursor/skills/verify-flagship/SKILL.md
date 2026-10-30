@@ -50,8 +50,8 @@ Teardown is [Cleanup](#cleanup).
 
 Read-only. Run it first, and again whenever anything looks off. It must end with `doctor: healthy`; otherwise do not drive. It checks that:
 
-- the `bin/dev` PID launch started is alive;
-- the process listening on the Rails port runs from this checkout;
+- the `bin/dev` PID launch started is alive, with the same start time launch recorded;
+- the process listening on the Rails port is one launch recorded as its own, and runs from this checkout;
 - `/api/tasks` serves exactly the rows in this run's SQLite file, so the instance isn't using `storage/development.sqlite3`;
 - the node renderer listens on its port;
 - `/__deployment` reports the `react_on_rails_pro` version pinned in `Gemfile.lock`;
@@ -86,7 +86,7 @@ Every drive writes to `tmp/verify-flagship/evidence/<RUN_ID>/<feature>/`:
 
 - `*.png`: full-page screenshots, before and after each action;
 - `*.aria.txt`: ARIA snapshots of the same states;
-- `network.json`: every `/api/*` request with method, status, whether `X-CSRF-Token` was sent, and request and response bodies;
+- `network.json`: every `/api/*` request, whether the page made it (`via: "page"`) or the driver did as a read-only second view (`via: "api-request-context"`), with method, status, whether `X-CSRF-Token` was sent, and request and response bodies;
 - `result.json`: feature, run ID, URL, git HEAD, each check with its observed value, console and page errors, and an overall `passed`;
 - `streamed.html`: the raw server response, for board and slow.
 
@@ -98,7 +98,7 @@ Proof standards:
 - Capture the action and the resulting state, not just the final screen.
 - Verify the side effect as well as what is visible: the API response status, the CSRF header, the state after a full reload, and the stored row.
 - Treat any console or page error as a failure, unless the feature file names it as expected and the driver asserts it.
-- No mocks. The only interception is blocking client scripts on `/slow`, which is the point of that journey.
+- No mocks. The only interception is aborting script requests on `/slow`, which is the point of that journey.
 
 ## Cleanup
 
@@ -106,13 +106,13 @@ Proof standards:
 .cursor/skills/verify-flagship/scripts/verify-flagship cleanup [RUN_ID]
 ```
 
-Cleanup stops only what launch started, using PIDs recorded in `<run>/state.env`; it never kills by process name.
+Cleanup stops only what launch started; it never kills by process name. Launch records each process it starts in `<run>/owned.tsv` as PID, start time, and role: `bin/dev`, the overmind or foreman process, overmind's tmux server, and the port listeners that descend from them. A PID is signalled only while its start time still matches, so a reused PID or a later process on the same port is left alone.
 
 1. Copies the launch logs into the evidence dir.
-2. Sends TERM to the `bin/dev` PID. This comes first because ReactOnRails' process manager falls back to foreman and restarts everything when overmind exits under a live `bin/dev`.
-3. Runs `overmind quit -s <run socket>`.
-4. Waits for the three run ports to free. A listener still holding one gets TERM only if its working directory is this checkout; anything else is reported and left alone.
-5. Waits for the recorded overmind PID and its tmux server PID to exit; the node renderer drains last, which takes up to about 20 s.
+2. Sends TERM to `bin/dev`. This comes first because ReactOnRails' process manager falls back to foreman and restarts everything when overmind exits under a live `bin/dev`.
+3. Runs `overmind quit -s <run socket>`, or sends TERM to foreman when there is no overmind socket.
+4. Waits up to 45 s for every recorded process to exit; the node renderer drains last, which takes about 20 s. Then sends TERM to any recorded process still running, and fails if one survives.
+5. Reports any process still holding a run port and leaves it alone; such a process was not started by this run, and cleanup fails until the port is free.
 6. Deletes the run dir (DB and state) and the socket.
 7. Prints the surviving evidence files. It fails if the evidence dir is missing.
 
@@ -128,6 +128,6 @@ Run cleanup after every failed launch or drive too. `verify-flagship status` lis
 - **One instance per checkout.** The Puma pidfile, `public/packs`, `ssr-generated`, and `.node-renderer-bundles` are shared by every `bin/dev` started in a directory. Run a second instance from another `git worktree`, which also gets its own port block.
 - **Bare `bin/dev` fails** with `KeyError: RENDERER_PASSWORD is required unless ALLOW_DEMO_RENDERER_PASSWORD=true in development/test` during "Generating React on Rails packs". `bin/dev` sets that variable after `require "bundler/setup"`, and the pack generator's `Bundler.with_unbundled_env` drops it. Launch exports it beforehand; keep doing so until `bin/dev` is fixed.
 - **Port 3000 is often someone else's dev server.** Launch never uses it, and Doctor proves which process and database you are talking to.
-- `/slow` deliberately blocks a Puma thread for `delay_ms` (clamped to 0–10,000), and returns 404 outside development and test.
+- `/slow` deliberately blocks a Puma thread for `delay_ms` (clamped to 0–10,000), and returns 404 outside development and test. Delays above 5 s exceed the Pro renderer's default `ssr_timeout`, and the panel never renders; `drive slow` reports that as a failure (see [slow-page.md](features/slow-page.md)).
 
 Keep the map honest as the app changes with `/pstack-maintain-verification-skill`.

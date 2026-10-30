@@ -26,6 +26,37 @@ log() { echo "==> $*"; }
 port_listeners() { lsof -nP -iTCP:"$1" -sTCP:LISTEN -t 2>/dev/null | sort -u || true; }
 pid_alive() { [[ -n "${1:-}" ]] && kill -0 "$1" 2>/dev/null; }
 pid_cwd() { lsof -a -p "$1" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | head -1; }
+pid_start() { ps -o lstart= -p "$1" 2>/dev/null | sed 's/^ *//; s/ *$//'; }
+
+# Ownership ledger: <run>/owned.tsv holds "PID<TAB>start time<TAB>role" for every process this
+# run started. A PID counts as ours only while its start time still matches, so a reused PID
+# or a later process on the same port is never signalled.
+own() {
+  local pid="$1" role="$2" start
+  [[ -n "$pid" ]] || return 0
+  start="$(pid_start "$pid")"
+  [[ -n "$start" ]] || return 0
+  if ! cut -f1 "$RUN_DIR/owned.tsv" 2>/dev/null | grep -qx "$pid"; then
+    printf '%s\t%s\t%s\n' "$pid" "$start" "$role" >>"$RUN_DIR/owned.tsv"
+  fi
+}
+owned_pids() { cut -f1 "$RUN_DIR/owned.tsv" 2>/dev/null || true; }
+owned_role_pids() { awk -F'\t' -v r="$1" '$3 == r { print $1 }' "$RUN_DIR/owned.tsv" 2>/dev/null || true; }
+still_ours() {
+  local pid="$1" recorded
+  [[ -n "$pid" ]] || return 1
+  recorded="$(awk -F'\t' -v p="$pid" '$1 == p { print $2 }' "$RUN_DIR/owned.tsv" 2>/dev/null)"
+  [[ -n "$recorded" && "$(pid_start "$pid")" == "$recorded" ]]
+}
+descends_from_owned() {
+  local pid="$1" owners
+  owners=" $(owned_pids | tr '\n' ' ') "
+  while [[ -n "$pid" && "$pid" -gt 1 ]]; do
+    [[ "$owners" == *" $pid "* ]] && still_ours "$pid" && return 0
+    pid="$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')"
+  done
+  return 1
+}
 
 resolve_run() {
   local run_id="${1:-}"
@@ -100,6 +131,8 @@ EVIDENCE_DIR='$evidence_dir'
 LAUNCH_LOG='$RUN_DIR/bin-dev.log'
 GIT_HEAD='$(git -C "$ROOT" rev-parse HEAD)'
 EOF
+  # shellcheck disable=SC1091
+  source "$RUN_DIR/state.env"
   echo "$run_id" >"$VF_DIR/current"
 
   log "run $run_id: ports $base_port/$((base_port + 1))/$((base_port + 2)), db $RUN_DIR/verify.sqlite3"
@@ -122,10 +155,13 @@ EOF
   (cd "$ROOT" && exec nohup bin/dev "${bin_dev_args[@]}") >"$RUN_DIR/bin-dev.log" 2>&1 &
   local bin_dev_pid=$!
   echo "BIN_DEV_PID='$bin_dev_pid'" >>"$RUN_DIR/state.env"
+  own "$bin_dev_pid" bin-dev
 
   log "waiting up to ${READY_TIMEOUT}s for bin/smoke to pass at http://localhost:$base_port"
   local deadline=$((SECONDS + READY_TIMEOUT))
   until (cd "$ROOT" && SMOKE_URL="http://localhost:$base_port" SMOKE_WAIT_SECONDS=2 bin/smoke) >"$RUN_DIR/smoke.log" 2>&1; do
+    # Record the process manager as soon as it appears, so a failed launch can still be cleaned up.
+    record_process_manager "$bin_dev_pid"
     if ! pid_alive "$bin_dev_pid"; then
       tail -40 "$RUN_DIR/bin-dev.log" >&2
       die "bin/dev exited before the app was ready (log: $RUN_DIR/bin-dev.log). Run 'cleanup $run_id'."
@@ -138,41 +174,68 @@ EOF
   done
   cat "$RUN_DIR/smoke.log"
   record_process_manager "$bin_dev_pid"
+  record_listeners
   log "READY run=$run_id mode=$mode url=http://localhost:$base_port"
 }
 
 # Overmind runs Procfile processes inside its own tmux server, which re-parents to PID 1,
-# so record both PIDs now; cleanup waits for exactly these to exit.
+# so record the manager and that server; cleanup waits for exactly these to exit.
 record_process_manager() {
-  local pid command tmux_name tmux_pid
-  for pid in $(pgrep -P "$1" || true); do
-    command="$(ps -o command= -p "$pid" || true)"
+  local pid command child tmux_name=""
+  [[ -z "$(owned_role_pids tmux-server)" ]] || return 0
+  for pid in $(pgrep -P "$1" 2>/dev/null || true); do
+    command="$(ps -o command= -p "$pid" 2>/dev/null || true)"
     case "$command" in
       overmind\ start*)
-        echo "PROCESS_MANAGER_PID='$pid'" >>"$RUN_DIR/state.env"
-        tmux_name="$(pgrep -P "$pid" | xargs -I{} ps -o command= -p {} | sed -n 's/.*tmux .*-L \([^ ]*\).*/\1/p' | head -1)"
+        own "$pid" process-manager
+        for child in $(pgrep -P "$pid" 2>/dev/null || true); do
+          tmux_name="$(ps -o command= -p "$child" 2>/dev/null | sed -n 's/.*tmux .*-L \([^ ]*\).*/\1/p' || true)"
+          [[ -n "$tmux_name" ]] && break
+        done
         if [[ -n "$tmux_name" ]]; then
-          tmux_pid="$(tmux -L "$tmux_name" display-message -p '#{pid}' 2>/dev/null || true)"
-          echo "TMUX_SERVER_PID='$tmux_pid'" >>"$RUN_DIR/state.env"
+          own "$(tmux -L "$tmux_name" display-message -p '#{pid}' 2>/dev/null || true)" tmux-server
         fi ;;
-      foreman*) echo "PROCESS_MANAGER_PID='$pid'" >>"$RUN_DIR/state.env" ;;
+      foreman*) own "$pid" process-manager ;;
     esac
   done
 }
 
+# At READY the run's ports were free before launch and are now held by descendants of the
+# processes above; record those listeners so cleanup can stop them if they outlive the manager.
+record_listeners() {
+  local port pid
+  for port in "$RAILS_PORT" "$WEBPACK_PORT" "$RENDERER_PORT_USED"; do
+    for pid in $(port_listeners "$port"); do
+      if descends_from_owned "$pid"; then own "$pid" "listener:$port"; fi
+    done
+  done
+}
+
+# Doctor checks run as plain commands; app responses are compared as data, never evaluated.
+cwd_is_root() { [[ "$(pid_cwd "$1")" == "$ROOT" ]]; }
+equal_nonempty() { [[ -n "$1" && "$1" == "$2" ]]; }
+contains() { [[ "$1" == *"$2"* ]]; }
+head_unchanged() { [[ "$(git -C "$ROOT" rev-parse HEAD)" == "$GIT_HEAD" ]]; }
+listens() { [[ -n "$(port_listeners "$1")" ]]; }
+smoke_passes() { (cd "$ROOT" && SMOKE_URL="$BASE_URL" SMOKE_WAIT_SECONDS=5 bin/smoke >/dev/null 2>&1); }
+
 cmd_doctor() {
   resolve_run "${1:-}"
   local failures=0
-  check() { if eval "$2"; then echo "[ok]   $1"; else echo "[FAIL] $1"; failures=$((failures + 1)); fi; }
+  check() {
+    local name="$1"; shift
+    if "$@"; then echo "[ok]   $name"; else echo "[FAIL] $name"; failures=$((failures + 1)); fi
+  }
 
   echo "run $RUN_ID at $BASE_URL, mode ${LAUNCH_MODE:-hmr} (launched from $GIT_HEAD)"
-  check "bin/dev process $BIN_DEV_PID is alive" "pid_alive '$BIN_DEV_PID'"
+  check "bin/dev process $BIN_DEV_PID is alive and is the one launch started" still_ours "$BIN_DEV_PID"
 
   local listener
   listener="$(port_listeners "$RAILS_PORT" | head -1)"
-  check "something listens on :$RAILS_PORT" "[[ -n '$listener' ]]"
+  check "something listens on :$RAILS_PORT" listens "$RAILS_PORT"
   if [[ -n "$listener" ]]; then
-    check "listener $listener on :$RAILS_PORT runs from $ROOT" "[[ \"\$(pid_cwd $listener)\" == '$ROOT' ]]"
+    check "listener $listener on :$RAILS_PORT was started by this run" still_ours "$listener"
+    check "listener $listener runs from $ROOT" cwd_is_root "$listener"
   fi
   # Prove the server reads this run's database, not storage/development.sqlite3: the rows the
   # API serves must match the run DB's (id, updated_at) pairs, which the launch seed stamped.
@@ -182,17 +245,15 @@ cmd_doctor() {
   api_rows="$(curl -fsS "$BASE_URL/api/tasks" 2>/dev/null | node -e \
     'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{for(const t of JSON.parse(s).tasks.sort((a,b)=>a.id-b.id))console.log(`${t.id} ${t.updatedAt.slice(0,19)}`)})' \
     2>/dev/null || true)"
-  check "/api/tasks serves this run's database (${DATABASE_URL_USED#sqlite3:})" "[[ -n '$db_rows' && '$db_rows' == '$api_rows' ]]"
-  check "node renderer listens on :$RENDERER_PORT_USED" "[[ -n \"\$(port_listeners $RENDERER_PORT_USED)\" ]]"
+  check "/api/tasks serves this run's database (${DATABASE_URL_USED#sqlite3:})" equal_nonempty "$db_rows" "$api_rows"
+  check "node renderer listens on :$RENDERER_PORT_USED" listens "$RENDERER_PORT_USED"
 
   local deployment expected_pro
   deployment="$(curl -fsS "$BASE_URL/__deployment" 2>/dev/null || true)"
   expected_pro="$(sed -n 's/^    react_on_rails_pro (\(.*\))$/\1/p' "$ROOT/Gemfile.lock" | head -1)"
-  check "/__deployment reports react_on_rails_pro $expected_pro" \
-    "[[ '$deployment' == *'\"react_on_rails_pro\":\"$expected_pro\"'* ]]"
-  check "checkout HEAD still matches launch ($GIT_HEAD)" "[[ \"\$(git -C '$ROOT' rev-parse HEAD)\" == '$GIT_HEAD' ]]"
-  check "bin/smoke passes (streamed RSC board with seeded title)" \
-    "(cd '$ROOT' && SMOKE_URL='$BASE_URL' SMOKE_WAIT_SECONDS=5 bin/smoke >/dev/null 2>&1)"
+  check "/__deployment reports react_on_rails_pro $expected_pro" contains "$deployment" "\"react_on_rails_pro\":\"$expected_pro\""
+  check "checkout HEAD still matches launch ($GIT_HEAD)" head_unchanged
+  check "bin/smoke passes (streamed RSC board with seeded title)" smoke_passes
 
   if ((failures > 0)); then echo "doctor: $failures check(s) failed; do not drive this instance"; return 1; fi
   echo "doctor: healthy"
@@ -227,52 +288,44 @@ cmd_cleanup() {
 
   # Stop bin/dev first: when overmind exits, ReactOnRails::Dev::ProcessManager falls back to
   # foreman and restarts every process, so the parent must already be gone.
-  if pid_alive "${BIN_DEV_PID:-}"; then
-    log "stopping bin/dev pid $BIN_DEV_PID"
-    kill -TERM "$BIN_DEV_PID" 2>/dev/null || true
-  fi
+  local pid
+  for pid in $(owned_role_pids bin-dev); do
+    if still_ours "$pid"; then log "stopping bin/dev pid $pid"; kill -TERM "$pid" 2>/dev/null || true; fi
+  done
   if [[ -S "$OVERMIND_SOCKET_USED" ]]; then
     log "asking overmind to quit (socket $OVERMIND_SOCKET_USED)"
     overmind quit -s "$OVERMIND_SOCKET_USED" >/dev/null 2>&1 || true
+  else
+    # Foreman (or an overmind that never opened its socket) stops its children on TERM.
+    for pid in $(owned_role_pids process-manager); do
+      if still_ours "$pid"; then kill -TERM "$pid" 2>/dev/null || true; fi
+    done
   fi
 
-  local ports=("$RAILS_PORT" "$WEBPACK_PORT" "$RENDERER_PORT_USED") deadline=$((SECONDS + 30)) pid
-  until ports_free "${ports[@]}"; do
+  # Overmind drains its panes (the node renderer exits last) before it and its tmux server stop.
+  # After the grace period, signal only recorded processes whose start time still matches.
+  local deadline=$((SECONDS + 45)) remaining
+  while :; do
+    remaining=""
+    for pid in $(owned_pids); do still_ours "$pid" && remaining+=" $pid"; done
+    [[ -z "$remaining" ]] && break
     if ((SECONDS >= deadline)); then
-      # Only processes that run from this checkout and hold this run's ports are ours.
-      for port in "${ports[@]}"; do
-        for pid in $(port_listeners "$port"); do
-          if [[ "$(pid_cwd "$pid")" == "$ROOT"* ]]; then
-            log "terminating leftover listener pid $pid on :$port"
-            kill -TERM "$pid" 2>/dev/null || true
-          else
-            echo "verify-flagship: :$port is held by pid $pid outside $ROOT; leaving it alone" >&2
-          fi
-        done
-      done
+      log "terminating recorded processes still running:$remaining"
+      for pid in $remaining; do kill -TERM "$pid" 2>/dev/null || true; done
       sleep 3
-      ports_free "${ports[@]}" || die "ports ${ports[*]} still in use after cleanup; inspect with lsof"
+      for pid in $remaining; do still_ours "$pid" && die "recorded pid $pid is still running; inspect it before retrying"; done
       break
     fi
     sleep 1
   done
-  if pid_alive "${BIN_DEV_PID:-}"; then die "bin/dev pid $BIN_DEV_PID is still alive"; fi
 
-  # Overmind drains its panes (the node renderer exits last) before it and its tmux server stop.
-  local manager_pids=("${PROCESS_MANAGER_PID:-}" "${TMUX_SERVER_PID:-}")
-  deadline=$((SECONDS + 45))
-  for pid in "${manager_pids[@]}"; do
-    while pid_alive "$pid"; do
-      if ((SECONDS >= deadline)); then
-        log "terminating process manager pid $pid recorded at launch"
-        kill -TERM "$pid" 2>/dev/null || true
-        sleep 2
-        pid_alive "$pid" && die "process manager pid $pid is still alive"
-        break
-      fi
-      sleep 1
+  local ports=("$RAILS_PORT" "$WEBPACK_PORT" "$RENDERER_PORT_USED") port
+  for port in "${ports[@]}"; do
+    for pid in $(port_listeners "$port"); do
+      echo "verify-flagship: :$port is held by pid $pid, which this run did not start; leaving it alone" >&2
     done
   done
+  ports_free "${ports[@]}" || die "ports ${ports[*]} are not free; the listeners above are not ours to stop"
 
   rm -f "$OVERMIND_SOCKET_USED"
   rm -rf "$RUN_DIR"
@@ -299,5 +352,5 @@ case "$command" in
   reseed) cmd_reseed "$@" ;;
   cleanup) cmd_cleanup "$@" ;;
   status) cmd_status ;;
-  *) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; [[ -z "$command" ]] || exit 1 ;;
+  *) awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"; [[ -z "$command" ]] || exit 1 ;;
 esac
