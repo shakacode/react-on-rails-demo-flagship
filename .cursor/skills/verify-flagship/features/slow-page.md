@@ -33,5 +33,5 @@ Preconditions:
 - The delay blocks a Puma thread. Keep `delay_ms` small and never fire parallel requests at a shared instance.
 - `/slow` returns 404 in production, including hosted review apps; this journey is local only.
 - Aborting script requests stops the external bundles only. Inline scripts, such as the streamed RSC payload, still run, so this proves the CSS arrives with the streamed HTML rather than from the client bundles.
-- Blocked scripts log `net::ERR_FAILED` console errors. The drive drops only those, and only from the blocked-scripts pass.
+- Blocked scripts log `net::ERR_FAILED` console errors. The drive drops only the errors for the script URLs it aborted.
 - Under HMR mode (`bin/dev`), CSS arrives through JavaScript, so `slow-no-fouc` reads `rgba(0, 0, 0, 0)`. That reflects the launch mode, not a regression.

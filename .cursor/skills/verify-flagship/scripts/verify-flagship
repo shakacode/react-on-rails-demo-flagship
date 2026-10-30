@@ -95,7 +95,9 @@ cmd_launch() {
 
   # One instance per checkout: Puma's tmp/pids/server.pid, public/packs, ssr-generated,
   # and .node-renderer-bundles are shared by every bin/dev started from this directory.
-  if [[ -f "$ROOT/tmp/pids/server.pid" ]] && pid_alive "$(cat "$ROOT/tmp/pids/server.pid")"; then
+  local server_pid=""
+  [[ -f "$ROOT/tmp/pids/server.pid" ]] && server_pid="$(cat "$ROOT/tmp/pids/server.pid")"
+  if pid_alive "$server_pid" && [[ "$(pid_cwd "$server_pid")" == "$ROOT" ]]; then
     die "a Rails server from this checkout is already running (tmp/pids/server.pid=$(cat "$ROOT/tmp/pids/server.pid")). Refusing to double-drive it; use a separate worktree."
   fi
 
@@ -109,7 +111,11 @@ cmd_launch() {
       die "$env_file exists; foreman and overmind would load it over this run's isolated settings. Launch from a worktree without it, or move it aside for the run."
   done
 
-  if [[ -z "$base_port" ]]; then
+  if [[ -n "$base_port" ]]; then
+    # Leading zeros would be read as octal by $(( )), so require a plain decimal port.
+    [[ "$base_port" =~ ^[1-9][0-9]{0,4}$ ]] && ((base_port <= 65533)) ||
+      die "--base-port must be a decimal port between 1 and 65533"
+  else
     for candidate in $(seq 4710 3 4797); do
       if ports_free "$candidate" "$((candidate + 1))" "$((candidate + 2))"; then base_port="$candidate"; break; fi
     done
@@ -262,6 +268,9 @@ cmd_doctor() {
   api_rows="$(curl -fsS "$BASE_URL/api/tasks" 2>/dev/null | node -e \
     'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{for(const t of JSON.parse(s).tasks.sort((a,b)=>a.id-b.id))console.log(`${t.id} ${t.updatedAt.slice(0,19)}`)})' \
     2>/dev/null || true)"
+  if [[ "${LAUNCH_MODE:-hmr}" == hmr ]]; then
+    check "webpack dev server listeners on :$WEBPACK_PORT were started by this run" listeners_ours "$WEBPACK_PORT"
+  fi
   check "/api/tasks serves this run's database (${DATABASE_URL_USED#sqlite3:})" equal_nonempty "$db_rows" "$api_rows"
   check "node renderer listeners on :$RENDERER_PORT_USED were started by this run" listeners_ours "$RENDERER_PORT_USED"
 
@@ -285,12 +294,19 @@ cmd_drive() {
   local feature="${1:-}"
   [[ -n "$feature" ]] || die "usage: drive FEATURE [RUN_ID]"
   resolve_run "${2:-}"
+  # One drive per run at a time: a second drive's reseed would reset rows mid-journey.
+  local lock="$RUN_DIR/drive.lock"
+  mkdir "$lock" 2>/dev/null || die "another drive is running on run $RUN_ID (remove $lock if it is stale)"
+  # Expand the path now: the local variable is gone by the time the EXIT trap runs.
+  trap "rmdir $(printf %q "$lock") 2>/dev/null" EXIT
   # Never mutate an instance that is not provably this run's (wrong DB, foreign port owner, ...).
   cmd_doctor "$RUN_ID" >"$RUN_DIR/doctor-before-drive.log" 2>&1 ||
     { cat "$RUN_DIR/doctor-before-drive.log" >&2; die "doctor failed; refusing to drive $feature"; }
   local status=0
   (cd "$ROOT" && VERIFY_BASE_URL="$BASE_URL" VERIFY_EVIDENCE_DIR="$EVIDENCE_DIR" VERIFY_RUN_ID="$RUN_ID" \
     VERIFY_GIT_HEAD="$GIT_HEAD" VERIFY_LAUNCH_MODE="${LAUNCH_MODE:-hmr}" node "$SCRIPT_DIR/drive.mjs" "$feature") || status=$?
+  # drive.mjs exits 2 only for usage errors such as an unknown feature; nothing ran, so keep the DB.
+  ((status == 2)) && return 2
   log "restoring seed data"
   cmd_reseed "$RUN_ID" >/dev/null
   return "$status"

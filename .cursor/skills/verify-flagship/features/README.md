@@ -18,7 +18,8 @@ This directory is the maintained source for verifying what a user sees in the fl
 ## Proof and skip reporting
 
 - Each feature writes screenshots, ARIA snapshots, `network.json`, and `result.json` to `tmp/verify-flagship/evidence/<RUN_ID>/<feature>/`.
-- A pass needs the user action, the resulting UI state, the API response, the state after reload, and no unexpected console errors.
+- A mutation journey (create, update, delete) passes only with the user action, the resulting UI state, the API response, the state after reload, and no unexpected console errors.
+- A read-only journey (board, slow) passes when every check in its feature file holds and no unexpected console error appears.
 - Report a journey whose precondition is missing as a failure with the reason, for example `slow` under HMR mode. Never weaken the check to make it pass.
 - Report each feature by its ID and the entry point driven. Do not count one entry point as proof of another.
 

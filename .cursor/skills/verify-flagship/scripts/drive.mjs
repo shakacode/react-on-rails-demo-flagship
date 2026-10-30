@@ -144,7 +144,7 @@ const drives = {
     const patched = page.waitForResponse((r) => r.request().method() === 'PATCH' && /\/api\/tasks\/\d+$/.test(new URL(r.url()).pathname));
     await status.selectOption('doing');
     const response = await patched;
-    check('PATCH /api/tasks/:id returned 200 with a CSRF header', response.ok() && Boolean(response.request().headers()['x-csrf-token']), { status: response.status() });
+    check('PATCH /api/tasks/:id returned 200 with a CSRF header', response.status() === 200 && Boolean(response.request().headers()['x-csrf-token']), { status: response.status() });
     await page.getByTestId('column-doing').locator(card(page, title)).waitFor();
     check('card moved from column-todo to column-doing', (await page.getByTestId('column-todo').locator(card(page, title)).count()) === 0);
     await snap(page, 'after-move', page.getByTestId('tasks-app'));
@@ -207,10 +207,10 @@ const drives = {
       };
       requestAnimationFrame(sample);
     });
-    let blockedScripts = 0;
+    const abortedScripts = new Set();
     await page.route('**/*', (route) => {
       if (route.request().resourceType() === 'script') {
-        blockedScripts += 1;
+        abortedScripts.add(route.request().url());
         return route.abort();
       }
       return route.continue();
@@ -218,6 +218,7 @@ const drives = {
     await page.goto(`/slow?delay_ms=${delayMs}`, { waitUntil: 'domcontentloaded' });
     const panel = page.locator('[data-slow-stats-panel]');
     await panel.waitFor();
+    const blockedScripts = abortedScripts.size;
     check('panel renders with client scripts blocked', blockedScripts > 0 && (await panel.textContent())?.includes(`Stats loaded after ${delayMs}ms`), { blockedScripts });
     await page.waitForFunction(() => window.slowPanelAtReveal !== undefined);
     const firstFrame = await page.evaluate(() => window.slowPanelAtReveal);
@@ -232,9 +233,9 @@ const drives = {
     });
     await snap(page, 'no-js');
     await page.unroute('**/*');
-    // The aborted script requests above log net::ERR_FAILED; drop only those, so a failed load in
-    // the JavaScript-enabled passes below still counts.
-    const kept = consoleErrors.filter((e) => !e.includes('net::ERR_FAILED'));
+    // Drop only the net::ERR_FAILED errors for the scripts aborted above, so any other failed
+    // load, in this pass or the JavaScript-enabled passes below, still counts.
+    const kept = consoleErrors.filter((e) => !(e.includes('net::ERR_FAILED') && abortedScripts.has(e.split(' @ ').pop())));
     consoleErrors.splice(0, consoleErrors.length, ...kept);
 
     await page.goto('/slow?delay_ms=not-a-number', { waitUntil: 'networkidle' });
@@ -258,23 +259,28 @@ if (!Object.hasOwn(drives, feature ?? '')) {
 }
 
 await mkdir(outDir, { recursive: true });
-const browser = await chromium.launch();
-const context = await browser.newContext({ baseURL, viewport: { width: 1280, height: 900 } });
-const page = await context.newPage();
-page.on('console', (m) => m.type() === 'error' && consoleErrors.push(`console: ${m.text()}`));
-page.on('pageerror', (e) => consoleErrors.push(`pageerror: ${e.message}`));
-recordApiTraffic(page);
-
+let browser;
+let page;
 let crash = null;
 try {
+  browser = await chromium.launch();
+  const context = await browser.newContext({ baseURL, viewport: { width: 1280, height: 900 } });
+  page = await context.newPage();
+  page.on('console', (m) => {
+    if (m.type() !== 'error') return;
+    const url = m.location()?.url;
+    consoleErrors.push(`console: ${m.text()}${url ? ` @ ${url}` : ''}`);
+  });
+  page.on('pageerror', (e) => consoleErrors.push(`pageerror: ${e.message}`));
+  recordApiTraffic(page);
   await drives[feature](page);
 } catch (error) {
   crash = String(error?.stack ?? error);
   check(`drive completed without an exception`, false, crash.split('\n')[0]);
-  await page.screenshot({ path: path.join(outDir, 'failure.png'), fullPage: true }).catch(() => {});
+  await page?.screenshot({ path: path.join(outDir, 'failure.png'), fullPage: true }).catch(() => {});
 } finally {
   check('no console or page errors', consoleErrors.length === 0, consoleErrors.length ? consoleErrors : undefined);
-  await browser.close();
+  await browser?.close();
 }
 
 const passed = checks.every((c) => c.ok);
