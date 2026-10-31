@@ -34,7 +34,7 @@ Launch does, in order:
 
 1. Refuses if a Rails server from this checkout is already running (`tmp/pids/server.pid`), or if any of `~/.overmind.env`, `.overmind.env`, `.env`, or `.foreman` exists. Overmind and foreman load those files over the run's exports, and the files can chain further files, so the run loads none of them. Launch also drops every inherited `OVERMIND_*` variable before setting its own socket. Picks the first free Rails/webpack/renderer port block from 4710 upward (`REACT_ON_RAILS_BASE_PORT`), never 3000.
 2. Creates a run under `tmp/verify-flagship/runs/<RUN_ID>/` and an evidence dir `tmp/verify-flagship/evidence/<RUN_ID>/`.
-3. Exports `ALLOW_DEMO_RENDERER_PASSWORD=true`, `DATABASE_URL=sqlite3:<run>/verify.sqlite3`, `REACT_ON_RAILS_BASE_PORT`, and `OVERMIND_SOCKET=/tmp/verify-flagship-<RUN_ID>.sock`, then runs `bin/rails db:prepare db:seed` against the empty run DB (six seeded tasks).
+3. Unsets `PRIMARY_DATABASE_URL`, which Rails would otherwise prefer over the run's database, then exports `ALLOW_DEMO_RENDERER_PASSWORD=true`, `DATABASE_URL=sqlite3:<run>/verify.sqlite3`, `REACT_ON_RAILS_BASE_PORT`, and `OVERMIND_SOCKET=/tmp/verify-flagship-<RUN_ID>.sock`, then runs `bin/rails db:prepare db:seed` against the empty run DB (six seeded tasks).
 4. Starts `bin/dev --no-open-browser` (or `bin/dev static --no-open-browser`) in the background, logging to `<run>/bin-dev.log`.
 5. Waits up to 300 s (`VERIFY_FLAGSHIP_READY_TIMEOUT`) until `bin/smoke` passes against the run's URL.
 

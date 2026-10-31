@@ -75,6 +75,20 @@ async function openBoard(page) {
   await page.getByTestId('tasks-app').waitFor();
 }
 
+// The server rejects an empty title, so nothing is stored. Only hydrated client code can show the
+// banner: without it the browser submits the form natively and reloads the page.
+async function submitEmptyTitle(page, snapName) {
+  await page.getByTestId('new-task-form').getByRole('button', { name: 'Add task', exact: true }).click();
+  const alert = page.getByTestId('error-banner');
+  await alert.waitFor();
+  check('empty title shows server validation in the error banner', (await alert.textContent())?.includes("Title can't be blank"));
+  await snap(page, snapName, page.getByTestId('tasks-app'));
+  await alert.getByRole('button', { name: 'Dismiss' }).click();
+  // The browser logs the deliberate 422 as a console error; expect exactly that one and drop it.
+  const expected = consoleErrors.splice(0);
+  check('the only console error so far is the expected 422', expected.length === 1 && expected[0].includes('422'), expected);
+}
+
 async function addTask(page, title, notes) {
   const form = page.getByTestId('new-task-form');
   await form.getByLabel('Task title', { exact: true }).fill(title);
@@ -103,6 +117,7 @@ const drives = {
     const stamp = (await page.getByTestId('ssr-timestamp').textContent())?.trim();
     check('ssr-timestamp shows an ISO server render time', /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(stamp ?? ''), { stamp });
     await snap(page, 'board', page.getByTestId('tasks-app'));
+    await submitEmptyTitle(page, 'hydrated');
   },
 
   async create(page) {
@@ -110,16 +125,7 @@ const drives = {
     await openBoard(page);
     await snap(page, 'before', page.getByTestId('tasks-app'));
 
-    const form = page.getByTestId('new-task-form');
-    await form.getByRole('button', { name: 'Add task', exact: true }).click();
-    const alert = page.getByTestId('error-banner');
-    await alert.waitFor();
-    check('empty title shows server validation in the error banner', (await alert.textContent())?.includes("Title can't be blank"));
-    await snap(page, 'empty-title-error', page.getByTestId('tasks-app'));
-    await alert.getByRole('button', { name: 'Dismiss' }).click();
-    // The browser logs the deliberate 422 as a console error; expect exactly that one and drop it.
-    const expected = consoleErrors.splice(0);
-    check('the only console error so far is the expected 422', expected.length === 1 && expected[0].includes('422'), expected);
+    await submitEmptyTitle(page, 'empty-title-error');
 
     const response = await addTask(page, title, 'Created by verify-flagship');
     check('POST /api/tasks returned 201 with a CSRF header', response.status() === 201 && Boolean(response.request().headers()['x-csrf-token']), { status: response.status() });

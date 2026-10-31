@@ -19,6 +19,8 @@ VF_DIR="$ROOT/tmp/verify-flagship"
 RUNS_DIR="$VF_DIR/runs"
 EVIDENCE_ROOT="$VF_DIR/evidence"
 READY_TIMEOUT="${VERIFY_FLAGSHIP_READY_TIMEOUT:-300}"
+# Rails prefers this over DATABASE_URL, so an inherited value would seed someone else's database.
+unset PRIMARY_DATABASE_URL
 
 die() { echo "verify-flagship: $*" >&2; exit 1; }
 log() { echo "==> $*"; }

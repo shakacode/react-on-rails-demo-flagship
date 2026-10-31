@@ -6,7 +6,7 @@ Opening the site shows the Flagship Task Board: six seeded tasks in To do, Doing
 
 - `board-streamed` puts all six cards and their titles in the raw HTML before any JavaScript runs.
 - `board-columns` groups cards into `column-todo`, `column-doing`, and `column-done`, two seeded cards each.
-- `board-hydrated` keeps the same six cards after hydration, with no console or page errors.
+- `board-hydrated` keeps the same six cards after hydration, responds to client code, and has no unexpected console or page errors.
 - `board-ssr-stamp` shows the server render time in `ssr-timestamp`.
 
 ## How to get to it (user POV)
@@ -24,10 +24,12 @@ Preconditions:
 - **Hydrated board.** The same drive opens `/` and waits for network idle. `tasks-app` is visible with six `task-card` elements.
 - **Columns.** The drive counts cards per column. `column-todo`, `column-doing`, and `column-done` each report 2.
 - **Server stamp.** The drive reads `ssr-timestamp`. It holds an ISO 8601 time.
-- **Proof.** `board.png` and `board.aria.txt` show the three column headings with counts, and `result.json` has `"passed": true`.
+- **Client code runs.** The drive chooses `Add task` with an empty form. `error-banner` shows `Title can't be blank` with no page reload, and `network.json` records the rejected `POST /api/tasks` with status 422. Nothing is stored.
+- **Proof.** `board.png` and `board.aria.txt` show the three column headings with counts, `hydrated.png` shows the banner, and `result.json` has `"passed": true`.
 
 ## Gotchas
 
 - `/up` returns 200 before the renderer can serve the board. Trust `bin/smoke` and the drive, not the health check.
 - The card count is exact. Leftover rows from an unreseeded drive or a manual edit fail `board-columns`; run `verify-flagship reseed`.
+- Cards and columns are already in the server HTML, so seeing them after load proves nothing about hydration. Only the client-code step does.
 - The serialized props JSON also contains the task titles, so a title match outside `</h3>` proves nothing about server rendering.
