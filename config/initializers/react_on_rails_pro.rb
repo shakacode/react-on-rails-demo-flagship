@@ -24,4 +24,8 @@ ReactOnRailsPro.configure do |config|
                              end
 
   config.rsc_payload_generation_url_path = "rsc_payload/"
+
+  # The local /slow demo keeps the renderer stream idle for up to
+  # SlowDemoController::MAX_DELAY_MS, so this has to outlast that delay.
+  config.ssr_timeout = 15 if Rails.env.development? || Rails.env.test?
 end
