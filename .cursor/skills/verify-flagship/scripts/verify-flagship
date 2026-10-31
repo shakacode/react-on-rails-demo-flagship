@@ -205,7 +205,7 @@ cmd_launch() {
   cat "$RUN_DIR/smoke.log"
   record_process_manager "$bin_dev_pid"
   # bin/dev falls back to foreman when overmind fails, a path this skill has never been proven on.
-  [[ -n "$(owned_role_pids tmux-server)" ]] ||
+  overmind_running ||
     die "bin/dev is not running under overmind, the only process manager this skill supports. Run 'cleanup $run_id' and check $RUN_DIR/bin-dev.log."
   record_listeners
   log "READY run=$run_id mode=$mode url=http://localhost:$base_port"
@@ -215,7 +215,6 @@ cmd_launch() {
 # so record the manager and that server; cleanup waits for exactly these to exit.
 record_process_manager() {
   local pid command child tmux_name=""
-  [[ -z "$(owned_role_pids tmux-server)" ]] || return 0
   for pid in $(pgrep -P "$1" 2>/dev/null || true); do
     command="$(ps -o command= -p "$pid" 2>/dev/null || true)"
     case "$command" in
@@ -231,6 +230,12 @@ record_process_manager() {
       foreman*) own "$pid" process-manager ;;
     esac
   done
+}
+
+overmind_running() {
+  local pid
+  for pid in $(owned_role_pids tmux-server); do still_ours "$pid" && return 0; done
+  return 1
 }
 
 # At READY the run's ports were free before launch and are now held by descendants of the
@@ -267,7 +272,8 @@ cmd_doctor() {
   }
 
   echo "run $RUN_ID at $BASE_URL, mode ${LAUNCH_MODE:-hmr} (launched from $GIT_HEAD)"
-  check "bin/dev process $BIN_DEV_PID is alive and is the one launch started" still_ours "$BIN_DEV_PID"
+  check "bin/dev process ${BIN_DEV_PID:-unrecorded} is alive and is the one launch started" still_ours "${BIN_DEV_PID:-}"
+  check "overmind's tmux server is still running" overmind_running
 
   local listener
   listener="$(port_listeners "$RAILS_PORT" | head -1)"

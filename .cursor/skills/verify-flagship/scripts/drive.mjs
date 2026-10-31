@@ -78,7 +78,10 @@ async function openBoard(page) {
 // The server rejects an empty title, so nothing is stored. Only hydrated client code can show the
 // banner: without it the browser submits the form natively and reloads the page.
 async function submitEmptyTitle(page, snapName) {
+  const rejected = page.waitForResponse((r) => r.request().method() === 'POST' && new URL(r.url()).pathname === '/api/tasks');
   await page.getByTestId('new-task-form').getByRole('button', { name: 'Add task', exact: true }).click();
+  const response = await rejected;
+  check('POST /api/tasks rejected the empty title with 422', response.status() === 422, { status: response.status() });
   const alert = page.getByTestId('error-banner');
   await alert.waitFor();
   check('empty title shows server validation in the error banner', (await alert.textContent())?.includes("Title can't be blank"));
