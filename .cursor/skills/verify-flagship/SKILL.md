@@ -130,6 +130,6 @@ Run cleanup after every failed launch or drive too. `verify-flagship status` lis
 - **Bare `bin/dev` fails** with `KeyError: RENDERER_PASSWORD is required unless ALLOW_DEMO_RENDERER_PASSWORD=true in development/test` during "Generating React on Rails packs". `bin/dev` sets that variable after `require "bundler/setup"`, and the pack generator's `Bundler.with_unbundled_env` drops it. Launch exports it beforehand; keep doing so until `bin/dev` is fixed.
 - **Env files block launch.** The README suggests per-worktree ports in `.env`; this skill picks its own ports instead, so keep `.env` out of the checkout you verify from, or use a fresh worktree.
 - **Port 3000 is often someone else's dev server.** Launch never uses it, and Doctor proves which process and database you are talking to.
-- `/slow` deliberately blocks a Puma thread for `delay_ms` (clamped to 0–10,000), and returns 404 outside development and test. Delays above 5 s exceed the Pro renderer's default `ssr_timeout`, and the panel never renders; `drive slow` reports that as a failure (see [slow-page.md](features/slow-page.md)).
+- `/slow` deliberately blocks a Puma thread for `delay_ms` (clamped to 0–10,000), and returns 404 outside development and test.
 
 Keep the map honest as the app changes with pstack's `maintain-verification-skill` ([cursor/plugins](https://github.com/cursor/plugins), installed as `/pstack-maintain-verification-skill`). When a route, handle, or seed changes, update the matching feature file in the same PR.
