@@ -15,6 +15,10 @@ class SlowDemoControllerTest < ActionController::TestCase
     Rails.env = original_env
   end
 
+  test "the renderer timeout outlasts the longest delay the demo allows" do
+    assert_operator ReactOnRailsPro.configuration.ssr_timeout, :>, SlowDemoController::MAX_DELAY_MS / 1000.0
+  end
+
   test "structured delay parameters do not crash the local demo" do
     [ ["1"], { value: "1" } ].each do |delay|
       @controller.define_singleton_method(:stream_view_containing_react_components) { |**| head :no_content }
