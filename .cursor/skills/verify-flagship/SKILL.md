@@ -53,6 +53,7 @@ Teardown is [Cleanup](#cleanup).
 Read-only. Run it first, and again whenever anything looks off. It must end with `doctor: healthy`; otherwise do not drive. It checks that:
 
 - the `bin/dev` PID launch started is alive, with the same start time launch recorded;
+- overmind and its tmux server, as recorded at launch, are still running;
 - every listener on the Rails port, the renderer port, and (in HMR mode) the webpack port is a process launch recorded, or descends from one, and the Rails listener runs from this checkout;
 - `/api/tasks` serves exactly the rows in this run's SQLite file, so the instance isn't using `storage/development.sqlite3`;
 - `/__deployment` reports the `react_on_rails_pro` version pinned in `Gemfile.lock`;

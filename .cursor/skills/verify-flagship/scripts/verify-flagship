@@ -219,7 +219,7 @@ record_process_manager() {
     command="$(ps -o command= -p "$pid" 2>/dev/null || true)"
     case "$command" in
       overmind\ start*)
-        own "$pid" process-manager
+        own "$pid" overmind
         for child in $(pgrep -P "$pid" 2>/dev/null || true); do
           tmux_name="$(ps -o command= -p "$child" 2>/dev/null | sed -n 's/.*tmux .*-L \([^ ]*\).*/\1/p' || true)"
           [[ -n "$tmux_name" ]] && break
@@ -227,16 +227,17 @@ record_process_manager() {
         if [[ -n "$tmux_name" ]]; then
           own "$(tmux -L "$tmux_name" display-message -p '#{pid}' 2>/dev/null || true)" tmux-server
         fi ;;
-      foreman*) own "$pid" process-manager ;;
+      foreman*) own "$pid" foreman ;;
     esac
   done
 }
 
-overmind_running() {
+role_running() {
   local pid
-  for pid in $(owned_role_pids tmux-server); do still_ours "$pid" && return 0; done
+  for pid in $(owned_role_pids "$1"); do still_ours "$pid" && return 0; done
   return 1
 }
+overmind_running() { role_running overmind && role_running tmux-server; }
 
 # At READY the run's ports were free before launch and are now held by descendants of the
 # processes above; record those listeners so cleanup can stop them if they outlive the manager.
@@ -273,7 +274,7 @@ cmd_doctor() {
 
   echo "run $RUN_ID at $BASE_URL, mode ${LAUNCH_MODE:-hmr} (launched from $GIT_HEAD)"
   check "bin/dev process ${BIN_DEV_PID:-unrecorded} is alive and is the one launch started" still_ours "${BIN_DEV_PID:-}"
-  check "overmind's tmux server is still running" overmind_running
+  check "overmind and its tmux server are still running" overmind_running
 
   local listener
   listener="$(port_listeners "$RAILS_PORT" | head -1)"
@@ -352,7 +353,7 @@ cmd_cleanup() {
     overmind quit -s "$OVERMIND_SOCKET_USED" >/dev/null 2>&1 || true
   else
     # Foreman (or an overmind that never opened its socket) stops its children on TERM.
-    for pid in $(owned_role_pids process-manager); do
+    for pid in $(owned_role_pids overmind) $(owned_role_pids foreman); do
       if still_ours "$pid"; then kill -TERM "$pid" 2>/dev/null || true; fi
     done
   fi
