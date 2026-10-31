@@ -20,9 +20,9 @@ Read [`features/README.md`](features/README.md) before driving; each feature fil
 
 ## Launch
 
-Prerequisites, once per checkout: `bundle install`, `npm install`, and `npx playwright install chromium` (the driver uses the repo's `@playwright/test`). Ruby 3.4.9, Node 20.19+/22.12+, `overmind` or `foreman`, and `lsof`, `pgrep`, `curl`, and `sqlite3` on `PATH`. The helper stops with `missing required tools` if one is absent.
+Prerequisites, once per checkout: `bundle install`, `npm install`, and `npx playwright install chromium` (the driver uses the repo's `@playwright/test`). Ruby 3.4.9, Node 20.19+/22.12+, `overmind` with `tmux`, and `lsof`, `pgrep`, `curl`, and `sqlite3` on `PATH`. The helper stops with `missing required tools` if one is absent.
 
-**Platform:** this skill is proven on macOS only. Its process checks read `lsof` and `ps -o lstart=`, and Linux is untested, so run a full launch, drive, and cleanup there before relying on its isolation guarantees.
+**Platform:** this skill is proven on macOS with overmind only. `bin/dev` can fall back to foreman, but this skill's cleanup has never been proven there, so launch stops if `bin/dev` isn't running under overmind. Its process checks read `lsof` and `ps -o lstart=`, and Linux is untested, so run a full launch, drive, and cleanup there before relying on its isolation guarantees.
 
 ```bash
 .cursor/skills/verify-flagship/scripts/verify-flagship launch                 # bin/dev (HMR), as in README

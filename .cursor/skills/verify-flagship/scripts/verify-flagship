@@ -204,6 +204,9 @@ cmd_launch() {
   done
   cat "$RUN_DIR/smoke.log"
   record_process_manager "$bin_dev_pid"
+  # bin/dev falls back to foreman when overmind fails, a path this skill has never been proven on.
+  [[ -n "$(owned_role_pids tmux-server)" ]] ||
+    die "bin/dev is not running under overmind, the only process manager this skill supports. Run 'cleanup $run_id' and check $RUN_DIR/bin-dev.log."
   record_listeners
   log "READY run=$run_id mode=$mode url=http://localhost:$base_port"
 }
@@ -393,9 +396,7 @@ command="${1:-}"
 shift || true
 case "$command" in
   launch)
-    require_tools lsof pgrep curl node sqlite3
-    command -v overmind >/dev/null 2>&1 || command -v foreman >/dev/null 2>&1 ||
-      die "missing required tools: overmind or foreman. See Launch prerequisites in SKILL.md."
+    require_tools lsof pgrep curl node sqlite3 overmind tmux
     cmd_launch "$@" ;;
   doctor) require_tools lsof curl node sqlite3; cmd_doctor "$@" ;;
   drive) require_tools lsof curl node sqlite3; cmd_drive "$@" ;;
