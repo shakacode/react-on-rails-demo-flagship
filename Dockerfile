@@ -11,7 +11,7 @@
 # the boot needs no network access and produces the same app every time.
 
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version
-ARG RUBY_VERSION=3.4.9
+ARG RUBY_VERSION=3.4.6
 ARG NODE_VERSION=22.12.0
 FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
 
@@ -55,7 +55,7 @@ RUN apt-get update -qq && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Install application gems
-COPY Gemfile Gemfile.lock ./
+COPY .ruby-version Gemfile Gemfile.lock ./
 
 RUN bundle install && \
     rm -rf ~/.bundle/ "${BUNDLE_PATH}"/ruby/*/cache "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git && \
