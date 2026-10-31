@@ -58,6 +58,14 @@ descends_from_owned() {
   return 1
 }
 
+# Port and ownership checks read lsof, so a missing tool must stop the run: without lsof every
+# port would look free and cleanup would report success without checking anything.
+require_tools() {
+  local tool missing=""
+  for tool in "$@"; do command -v "$tool" >/dev/null 2>&1 || missing+=" $tool"; done
+  [[ -z "$missing" ]] || die "missing required tools:$missing. See Launch prerequisites in SKILL.md."
+}
+
 resolve_run() {
   local run_id="${1:-}"
   if [[ -z "$run_id" ]]; then
@@ -382,11 +390,15 @@ cmd_status() {
 command="${1:-}"
 shift || true
 case "$command" in
-  launch) cmd_launch "$@" ;;
-  doctor) cmd_doctor "$@" ;;
-  drive) cmd_drive "$@" ;;
+  launch)
+    require_tools lsof pgrep curl node sqlite3
+    command -v overmind >/dev/null 2>&1 || command -v foreman >/dev/null 2>&1 ||
+      die "missing required tools: overmind or foreman. See Launch prerequisites in SKILL.md."
+    cmd_launch "$@" ;;
+  doctor) require_tools lsof curl node sqlite3; cmd_doctor "$@" ;;
+  drive) require_tools lsof curl node sqlite3; cmd_drive "$@" ;;
   reseed) cmd_reseed "$@" ;;
-  cleanup) cmd_cleanup "$@" ;;
+  cleanup) require_tools lsof; cmd_cleanup "$@" ;;
   status) cmd_status ;;
   *) awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"; [[ -z "$command" ]] || exit 1 ;;
 esac

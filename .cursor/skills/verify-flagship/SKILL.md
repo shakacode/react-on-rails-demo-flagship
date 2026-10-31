@@ -20,7 +20,9 @@ Read [`features/README.md`](features/README.md) before driving; each feature fil
 
 ## Launch
 
-Prerequisites, once per checkout: `bundle install`, `npm install`, and `npx playwright install chromium` (the driver uses the repo's `@playwright/test`). Ruby 3.4.9, Node 20.19+/22.12+, `overmind` or `foreman`, and `sqlite3` on `PATH`.
+Prerequisites, once per checkout: `bundle install`, `npm install`, and `npx playwright install chromium` (the driver uses the repo's `@playwright/test`). Ruby 3.4.9, Node 20.19+/22.12+, `overmind` or `foreman`, and `lsof`, `pgrep`, `curl`, and `sqlite3` on `PATH`. The helper stops with `missing required tools` if one is absent.
+
+**Platform:** this skill is proven on macOS only. Its process checks read `lsof` and `ps -o lstart=`, and Linux is untested, so run a full launch, drive, and cleanup there before relying on its isolation guarantees.
 
 ```bash
 .cursor/skills/verify-flagship/scripts/verify-flagship launch                 # bin/dev (HMR), as in README
@@ -51,7 +53,7 @@ Teardown is [Cleanup](#cleanup).
 Read-only. Run it first, and again whenever anything looks off. It must end with `doctor: healthy`; otherwise do not drive. It checks that:
 
 - the `bin/dev` PID launch started is alive, with the same start time launch recorded;
-- every listener on the Rails port and on the renderer port is a process launch recorded, or descends from one, and the Rails listener runs from this checkout;
+- every listener on the Rails port, the renderer port, and (in HMR mode) the webpack port is a process launch recorded, or descends from one, and the Rails listener runs from this checkout;
 - `/api/tasks` serves exactly the rows in this run's SQLite file, so the instance isn't using `storage/development.sqlite3`;
 - `/__deployment` reports the `react_on_rails_pro` version pinned in `Gemfile.lock`;
 - `HEAD` still matches the commit recorded at launch;
