@@ -32,7 +32,7 @@ JSON mutations, one app, one deploy.
 | React / ReactDOM | 19.3.1 (coordinated with Flight 19.3.1 and RSC 19.3.2) |
 | Redux Toolkit | 2.13.0 |
 | TypeScript | 7.0.2 |
-| Node | 20.19+ or 22.12+ (22.12.0 in the container) |
+| Node | 22.15+ (22.23.4 in the container) |
 | Database | SQLite |
 
 > **Coordinated React 19.3 stack:** This demo uses React, ReactDOM, and
@@ -41,7 +41,7 @@ JSON mutations, one app, one deploy.
 
 ## Run it: clone and run
 
-Prerequisites: Ruby 3.4.9, Node 20.19+ or 22.12+, npm, SQLite (all
+Prerequisites: Ruby 3.4.9, Node 22.15+, npm, SQLite (all
 standard Rails dev tooling - no Redis, no Postgres, no API keys).
 On supported Linux hosts, install Playwright's system dependencies once with
 `npx playwright install-deps chromium` before running browser tests locally.
