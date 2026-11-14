@@ -25,7 +25,7 @@
     "react-dom": "19.3.1",
     "react-on-rails-pro": "17.2.1-rc.3",
     "react-on-rails-pro-node-renderer": "17.2.1-rc.3",
-    "react-on-rails-rsc": "19.3.1",
+    "react-on-rails-rsc": "19.3.2",
     "react-redux": "9.3.1",
     "react-server-dom-webpack": "19.3.1",
     "rspack-manifest-plugin": "^5.2.2",
